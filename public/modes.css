@@ -1,0 +1,262 @@
+/* =====================================================================
+   PLACAR · modos (F1, NBA e cada campeonato vestem o site inteiro)
+   As variáveis --m1/--m2 (fundo), --acc/--acc2 (destaque), --accL (destaque em fundo claro)
+   e --acc-ink (texto sobre o destaque) são definidas pelo modes.js.
+   ===================================================================== */
+
+/* ---------- logos e escudos escuros no tema escuro ---------- */
+:root[data-theme="dark"] img.crest { filter: drop-shadow(0 0 1px rgba(255, 255, 255, .3)); }
+
+/* ---------- texturas ---------- */
+:root[data-pat="stars"] { --pat: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cg fill='white'%3E%3Cpath opacity='.22' d='M30 20l2 6 6 2-6 2-2 6-2-6-6-2 6-2z'/%3E%3Cpath opacity='.12' d='M140 60l1.5 4.5 4.5 1.5-4.5 1.5-1.5 4.5-1.5-4.5-4.5-1.5 4.5-1.5z'/%3E%3Cpath opacity='.16' d='M90 150l2.5 7.5 7.5 2.5-7.5 2.5-2.5 7.5-2.5-7.5-7.5-2.5 7.5-2.5z'/%3E%3Ccircle cx='170' cy='170' r='1.5' opacity='.25'/%3E%3Ccircle cx='60' cy='110' r='1' opacity='.3'/%3E%3Ccircle cx='185' cy='25' r='1' opacity='.25'/%3E%3C/g%3E%3C/svg%3E"); --pat-size: 200px 200px; }
+:root[data-pat="diag"] { --pat: repeating-linear-gradient(115deg, rgba(255, 255, 255, .055) 0 2px, transparent 2px 26px); }
+:root[data-pat="dots"] { --pat: radial-gradient(rgba(255, 255, 255, .11) 1.2px, transparent 1.7px); --pat-size: 18px 18px; }
+:root[data-pat="hex"] { --pat: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='98'%3E%3Cpath d='M28 66L0 50V16L28 0l28 16v34L28 66zm0 32V66' fill='none' stroke='white' stroke-opacity='.07' stroke-width='1.2'/%3E%3C/svg%3E"); --pat-size: 56px 98px; }
+:root[data-pat="court"] { --pat: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='560' viewBox='0 0 1200 560' fill='none' stroke='white' stroke-opacity='.08' stroke-width='3'%3E%3Ccircle cx='600' cy='280' r='90'/%3E%3Ccircle cx='600' cy='280' r='30'/%3E%3Cpath d='M600 0v560M0 160h190v240H0M1200 160h-190v240h190M190 210a70 70 0 0 1 0 140M1010 210a70 70 0 0 0 0 140M0 40h70a240 240 0 0 1 0 480H0M1200 40h-70a240 240 0 0 0 0 480h70'/%3E%3C/svg%3E"); --pat-size: 1200px 560px; --pat-pos: center top; }
+:root[data-pat="carbon"] { --pat: linear-gradient(45deg, rgba(255, 255, 255, .04) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, .04) 75%), linear-gradient(45deg, rgba(255, 255, 255, .04) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, .04) 75%); --pat-size: 8px 8px; --pat-pos: 0 0, 4px 4px; }
+
+/* ---------- tokens do modo ---------- */
+:root[data-mode] {
+  --brand: var(--accL);
+  --brand-2: var(--acc2);
+  --brand-soft: color-mix(in srgb, var(--accL) 12%, transparent);
+  --brand-grad: linear-gradient(135deg, var(--acc2) 0%, var(--acc) 60%);
+  --bg: color-mix(in srgb, var(--m2) 7%, #eef1f4);
+  background: var(--bg);
+}
+:root[data-mode][data-theme="dark"] {
+  --brand: var(--acc);
+  --brand-soft: color-mix(in srgb, var(--acc) 15%, transparent);
+  --bg: color-mix(in srgb, var(--m1) 75%, #000);
+  --surface: color-mix(in srgb, var(--m1) 45%, #10141a);
+  --surface-2: color-mix(in srgb, var(--m2) 22%, #151a20);
+  --surface-3: color-mix(in srgb, var(--m2) 32%, #1b2128);
+  --hover: color-mix(in srgb, var(--m2) 26%, #161c22);
+  --line: rgba(255, 255, 255, .08);
+  --glass: color-mix(in srgb, var(--m1) 72%, transparent);
+}
+:root[data-mode] body { background: none; }
+:root[data-mode] body::before { content: ""; position: fixed; inset: 0; z-index: -2; pointer-events: none;
+  background: radial-gradient(1100px 520px at 18% -8%, color-mix(in srgb, var(--acc) 30%, transparent), transparent 65%),
+              radial-gradient(900px 480px at 100% 0%, color-mix(in srgb, var(--acc2) 18%, transparent), transparent 60%),
+              linear-gradient(180deg, var(--m2) 0, var(--m1) 340px, var(--bg) 720px); }
+:root[data-mode] body::after { content: ""; position: fixed; left: 0; right: 0; top: 0; height: 640px; z-index: -1; pointer-events: none;
+  background-image: var(--pat); background-size: var(--pat-size, auto); background-position: var(--pat-pos, 0 0);
+  -webkit-mask-image: linear-gradient(180deg, #000 25%, transparent); mask-image: linear-gradient(180deg, #000 25%, transparent); }
+
+/* topo e menu se transformam */
+:root[data-mode] .topbar { background: color-mix(in srgb, var(--m1) 80%, transparent); border-bottom-color: rgba(255, 255, 255, .08); color: #fff; }
+:root[data-mode] .brand-name { color: #fff; }
+:root[data-mode] .brand-mark rect { fill: var(--acc); }
+:root[data-mode] .topnav { background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .1); }
+:root[data-mode] .topnav a { color: rgba(255, 255, 255, .72); }
+:root[data-mode] .topnav a:hover { color: #fff; }
+:root[data-mode] .topnav a.active, :root[data-mode] .sportbar a.active, :root[data-mode] .btn-primary, :root[data-mode] .day.active { color: var(--acc-ink); }
+:root[data-mode] .topnav a.active { box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--acc) 80%, transparent); }
+:root[data-mode] .search input { background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .12); color: #fff; }
+:root[data-mode] .search input::placeholder { color: rgba(255, 255, 255, .55); }
+:root[data-mode] .search svg { stroke: rgba(255, 255, 255, .6); }
+:root[data-mode] .topbar .icon-btn { color: #fff; }
+:root[data-mode] .topbar .icon-btn:hover { background: rgba(255, 255, 255, .1); }
+:root[data-mode] .topbar .icon-btn svg { stroke: #fff; }
+
+.mode-badge { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px 0 6px; border-radius: 999px; flex: none;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--acc) 30%, transparent), rgba(255, 255, 255, .05)); border: 1px solid color-mix(in srgb, var(--acc) 45%, rgba(255, 255, 255, .12));
+  color: #fff; font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: -.01em; white-space: nowrap; animation: badgeIn .5s cubic-bezier(.2, .9, .2, 1.2); }
+.mode-badge img, .mode-badge svg { width: 24px; height: 24px; object-fit: contain; }
+.mode-badge svg { fill: none; stroke: var(--acc); stroke-width: 1.8; margin-left: 4px; }
+@keyframes badgeIn { from { opacity: 0; transform: translateX(-10px) scale(.9); } }
+@media (max-width: 1360px) { .mode-badge span { display: none; } .mode-badge { padding: 0 5px; } }
+
+/* ---------- campeonato: abertura em banner ---------- */
+.comp-card { overflow: hidden; }
+.comp-head { position: relative; isolation: isolate; overflow: hidden; padding: 30px 28px 26px; gap: 22px; color: #fff;
+  background: linear-gradient(115deg, var(--m1, #04170c) 0%, var(--m2, #0b3d22) 100%); }
+.comp-head::before { content: ""; position: absolute; inset: 0; z-index: -1; background-image: var(--pat); background-size: var(--pat-size, auto); background-position: var(--pat-pos, 0 0); opacity: .9; }
+.comp-head::after { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(60% 140% at 0% 0%, color-mix(in srgb, var(--acc, #2fd47c) 35%, transparent), transparent 70%); }
+.comp-head .ph-wm { position: absolute; right: -30px; top: 50%; height: 240%; transform: translateY(-50%) rotate(-8deg); opacity: .09; z-index: -1; pointer-events: none; }
+.comp-head .ph-logo { width: 104px; height: 104px; flex: none; display: grid; place-items: center; border-radius: 26px; padding: 14px;
+  background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .14); box-shadow: 0 18px 40px -16px rgba(0, 0, 0, .6); backdrop-filter: blur(6px); }
+.comp-head .ph-logo img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .4)); }
+.comp-head .eyebrow { color: var(--acc, #2fd47c); }
+.comp-head h1 { font-size: 42px; font-weight: 800; color: #fff; line-height: 1.05; margin: 4px 0 2px; }
+.comp-head .sub { color: rgba(255, 255, 255, .72); }
+.comp-head .facts span { background: rgba(255, 255, 255, .1); border-color: rgba(255, 255, 255, .14); color: #fff; }
+.comp-head .facts b { color: var(--acc, #2fd47c); }
+@media (max-width: 600px) {
+  .comp-head { padding: 22px 16px; gap: 14px; }
+  .comp-head .ph-logo { width: 72px; height: 72px; border-radius: 18px; padding: 10px; }
+  .comp-head h1 { font-size: 28px; }
+}
+
+/* =====================================================================
+   NBA: arena, quadra e placar eletrônico
+   ===================================================================== */
+:root[data-mode="nba"] .sport-head h1, :root[data-mode="nba"] .hero-main h1, :root[data-mode="nba"] .mh-score,
+:root[data-mode="nba"] .kpis b, :root[data-mode="nba"] .card-title, :root[data-mode="nba"] .nba-t b, :root[data-mode="nba"] .stat-grid b {
+  font-family: "Bebas Neue", var(--display); font-weight: 400; letter-spacing: .03em; }
+:root[data-mode="nba"] .card-title { font-size: 20px; }
+:root[data-mode="nba"] .card-title .more { font-family: Inter, sans-serif; }
+:root[data-mode="nba"] .mh-score { font-size: 72px; }
+:root[data-mode="nba"] .kpis b { font-size: 32px; }
+:root[data-mode="nba"] .hero-main h1 { font-size: 48px; }
+
+.nba-head { position: relative; isolation: isolate; overflow: hidden; padding: 28px 26px; color: #fff;
+  background: radial-gradient(70% 160% at 100% 0%, rgba(255, 122, 26, .45), transparent 60%), linear-gradient(120deg, #070b1a, #17306e); }
+.nba-head::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: .9;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='560' viewBox='0 0 1200 560' fill='none' stroke='white' stroke-opacity='.1' stroke-width='3'%3E%3Ccircle cx='600' cy='280' r='90'/%3E%3Ccircle cx='600' cy='280' r='30'/%3E%3Cpath d='M600 0v560M0 160h190v240H0M1200 160h-190v240h190M0 40h70a240 240 0 0 1 0 480H0M1200 40h-70a240 240 0 0 0 0 480h70'/%3E%3C/svg%3E") center / cover; }
+.nba-head h1 { font-family: "Bebas Neue", var(--display) !important; font-size: 72px !important; line-height: .9; letter-spacing: .02em; color: #fff; }
+.nba-head .sub { color: rgba(255, 255, 255, .75) !important; font-size: 14.5px !important; }
+.nba-head .sh-ico { width: 76px; height: 76px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffb26b, #ff7a1a 55%, #c2410c) !important; box-shadow: 0 16px 36px -10px rgba(255, 122, 26, .7); }
+.nba-head .sh-ico svg { stroke: #3a1400 !important; width: 52px; height: 52px; stroke-width: 1.4; }
+.nba-head + .tabs, .card:has(.nba-head) .tabs { border-top: 0; }
+
+/* placar eletrônico */
+.nba-grid { gap: 12px; }
+.nba-g { position: relative; overflow: hidden; border-radius: 16px; padding: 14px 16px; color: #fff; border: 1px solid rgba(255, 255, 255, .07);
+  background: radial-gradient(120% 90% at 100% 0%, rgba(255, 122, 26, .16), transparent 60%), linear-gradient(180deg, #0e1529, #090d1a); }
+.nba-g::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(255, 255, 255, .025) 0 1px, transparent 1px 3px); }
+.nba-g:hover { transform: translateY(-3px); box-shadow: 0 18px 36px -16px rgba(255, 122, 26, .45); border-color: rgba(255, 122, 26, .4); }
+.nba-g .nba-st { color: rgba(255, 255, 255, .6); text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
+.nba-g.is-live { border-color: rgba(255, 71, 87, .5); }
+.nba-g .nba-t { color: #fff; }
+.nba-g .nba-t .rec { color: rgba(255, 255, 255, .45); }
+.nba-g .nba-t b { font-family: "Bebas Neue", var(--display); font-weight: 400; font-size: 32px; line-height: 1; letter-spacing: .04em; color: #fff; }
+.nba-g .nba-t.win b { color: #ffb347; text-shadow: 0 0 18px rgba(255, 140, 40, .55); }
+.nba-g .nba-t.lose { color: rgba(255, 255, 255, .55); }
+.nba-g .nba-t.lose b { color: rgba(255, 255, 255, .5); }
+.nba-g .nba-lead { color: rgba(255, 255, 255, .55) !important; border-top: 1px dashed rgba(255, 255, 255, .1); padding-top: 8px; }
+.nba-g .crest { filter: drop-shadow(0 2px 6px rgba(0, 0, 0, .5)) !important; }
+
+/* =====================================================================
+   F1: fibra de carbono, vermelho e torre de cronometragem
+   ===================================================================== */
+:root[data-mode="f1"] { --display: "Titillium Web", "Inter", sans-serif; }
+:root[data-mode="f1"] h1, :root[data-mode="f1"] .card-title, :root[data-mode="f1"] .hs-head h2 { font-family: "Titillium Web", var(--display); font-style: italic; font-weight: 900; text-transform: uppercase; letter-spacing: .01em; }
+:root[data-mode="f1"] .card-title { font-size: 15px; }
+:root[data-mode="f1"] .card-title .more { font-style: normal; text-transform: none; font-weight: 600; font-family: Inter, sans-serif; }
+:root[data-mode="f1"] .tabs a { font-family: "Titillium Web", sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: 13px; }
+
+.f1-hero { position: relative; isolation: isolate; color: #fff; border: 1px solid rgba(255, 255, 255, .06);
+  background: radial-gradient(80% 140% at 100% 0%, rgba(255, 30, 30, .35), transparent 60%), linear-gradient(135deg, #0b0b0d 0%, #1a0505 100%) !important; }
+.f1-hero::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: .9;
+  background-image: linear-gradient(45deg, rgba(255, 255, 255, .035) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, .035) 75%), linear-gradient(45deg, rgba(255, 255, 255, .035) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, .035) 75%);
+  background-size: 8px 8px; background-position: 0 0, 4px 4px; }
+.f1-hero::after { content: ""; position: absolute; right: -60px; top: -40px; width: 340px; height: 140%; z-index: -1; transform: skewX(-18deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 30, 30, .22) 40%, rgba(255, 30, 30, .05)); border-left: 3px solid rgba(255, 30, 30, .6); }
+.f1-hero h1 { font-family: "Titillium Web", var(--display); font-style: italic; font-weight: 900; text-transform: uppercase; font-size: 44px !important; line-height: .95; letter-spacing: 0 !important; color: #fff; }
+.f1-hero .sub, .f1-hero .small.muted, .f1-hero .muted { color: rgba(255, 255, 255, .65) !important; }
+.f1-hero .eyebrow, .f1-hero .eyebrow a { color: #ff4646; }
+.f1-hero .cd div { background: rgba(0, 0, 0, .45); border-color: rgba(255, 255, 255, .1); }
+.f1-hero .cd b { font-family: "Titillium Web", sans-serif; font-weight: 900; font-size: 28px; color: #fff; text-shadow: 0 0 16px rgba(255, 40, 40, .55); }
+.f1-hero .cd span { color: rgba(255, 255, 255, .5); }
+.f1-hero .f1-sessions div { background: rgba(255, 255, 255, .04); border-color: rgba(255, 255, 255, .08); color: #fff; }
+.f1-hero .f1-sessions span { color: rgba(255, 255, 255, .55); }
+.f1-hero .f1-sessions b { font-family: "Titillium Web", sans-serif; font-weight: 700; }
+.f1-hero .f1-sessions .next { border-color: #ff1e1e; box-shadow: inset 0 0 0 1px #ff1e1e, 0 0 24px -6px rgba(255, 30, 30, .6); }
+.f1-hero .f1-sessions .race b { color: #ff4646; }
+.f1-hero .btn { background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .16); color: #fff; }
+.f1-hero .btn:hover { background: #ff1e1e; border-color: #ff1e1e; }
+
+.f1-champ { position: relative; overflow: hidden; border-left: 4px solid #ff1e1e; }
+.f1-champ b { font-family: "Titillium Web", sans-serif; font-weight: 700; font-size: 16px; }
+
+/* torre de cronometragem */
+.f1-list { padding: 6px 8px 8px; }
+.f1-st { border-top: 0; border-radius: 10px; margin-bottom: 3px; padding: 8px 12px; background: var(--surface-2); transition: background .15s, transform .15s; }
+.f1-st:hover { background: var(--surface-3); transform: translateX(3px); }
+.f1-st .p { font-family: "Titillium Web", sans-serif; font-weight: 900; font-style: italic; font-size: 16px; color: var(--text); }
+.f1-st:nth-child(1) .p { color: #e8b923; } .f1-st:nth-child(2) .p { color: #b9c2cc; } .f1-st:nth-child(3) .p { color: #c98a4b; }
+.f1-st .tc { height: 26px; width: 4px; border-radius: 2px; }
+.f1-st .nm b { font-family: "Titillium Web", sans-serif; font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: .01em; }
+.f1-st .pt { font-family: "Titillium Web", sans-serif; font-weight: 900; font-size: 18px; font-style: italic; }
+.f1-st .bar { height: 5px; background: rgba(127, 127, 127, .15); }
+.f1-cal { border-radius: 10px; }
+.hero.f1h h1 { font-family: "Titillium Web", var(--display); font-style: italic; font-weight: 900; text-transform: uppercase; font-size: 40px; }
+.hero.f1h .big-num { font-family: "Titillium Web", sans-serif; font-weight: 900; }
+
+/* =====================================================================
+   Vinhetas de entrada
+   ===================================================================== */
+.intro { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; overflow: hidden;
+  color: #fff; background: linear-gradient(135deg, var(--m1, #050505), var(--m2, #111)); opacity: 0; transition: opacity .2s; cursor: pointer; clip-path: inset(0 0 0 0); }
+.intro.in { opacity: 1; }
+.intro .i-title { display: grid; justify-items: center; gap: 6px; text-align: center; padding: 0 20px; }
+.intro .i-title small { font-size: 14px; letter-spacing: .14em; text-transform: uppercase; opacity: .7; font-weight: 600; }
+
+/* F1: cinco luzes acendem e apagam */
+.intro-f1 { background: #050506; }
+.intro-f1 .i-carbon { position: absolute; inset: 0; opacity: .8; background-image: linear-gradient(45deg, rgba(255, 255, 255, .03) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, .03) 75%), linear-gradient(45deg, rgba(255, 255, 255, .03) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, .03) 75%); background-size: 8px 8px; background-position: 0 0, 4px 4px; }
+.intro-f1 .i-lights { position: relative; display: flex; gap: clamp(8px, 2vw, 18px); padding: 18px 22px; border-radius: 18px; background: #0b0b0c; box-shadow: 0 30px 80px -20px #000, inset 0 0 0 1px rgba(255, 255, 255, .05); }
+.intro-f1 .i-lights::before { content: ""; position: absolute; left: -40vw; right: -40vw; top: 50%; height: 10px; background: #111; z-index: -1; }
+.intro-f1 .pod { display: grid; gap: 10px; padding: 10px; border-radius: 14px; background: #161617; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .05); }
+.intro-f1 .pod i { width: clamp(30px, 7vw, 48px); height: clamp(30px, 7vw, 48px); border-radius: 50%; background: #2a0808; box-shadow: inset 0 -4px 10px rgba(0, 0, 0, .6); transition: background .08s, box-shadow .08s; }
+.intro-f1 .pod.on i { background: radial-gradient(circle at 40% 35%, #ff8a8a, #ff1e1e 55%, #b00000); box-shadow: 0 0 28px 8px rgba(255, 30, 30, .65), inset 0 -4px 10px rgba(0, 0, 0, .3); }
+.intro-f1.out-lights .pod i { background: #2a0808; box-shadow: inset 0 -4px 10px rgba(0, 0, 0, .6); }
+.intro-f1 .i-title { opacity: 0; transform: translateX(-60px) skewX(-12deg); transition: opacity .25s, transform .35s cubic-bezier(.2, .9, .2, 1); }
+.intro-f1 .i-title span { font-family: "Titillium Web", sans-serif; font-style: italic; font-weight: 900; font-size: clamp(44px, 9vw, 92px); text-transform: uppercase; line-height: .9; }
+.intro-f1.out-lights .i-title { opacity: 1; transform: none; }
+.intro-f1 .i-streak { position: absolute; left: -60%; top: 62%; width: 60%; height: 4px; background: linear-gradient(90deg, transparent, #ff1e1e, #fff); box-shadow: 0 0 24px #ff1e1e; }
+.intro-f1.out-lights .i-streak { animation: streak .55s cubic-bezier(.4, 0, .2, 1) forwards; }
+@keyframes streak { to { left: 120%; } }
+.intro-f1.leave { animation: f1Out .5s cubic-bezier(.7, 0, .3, 1) forwards; }
+@keyframes f1Out { to { transform: translateX(-110%) skewX(-14deg); } }
+
+/* NBA: a bola quica e o placar acende */
+.intro-nba { background: radial-gradient(60% 60% at 50% 60%, rgba(255, 122, 26, .45), transparent 70%), linear-gradient(160deg, #070b1a, #17306e); }
+.intro-nba .i-court { position: absolute; inset: 0; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='560' viewBox='0 0 1200 560' fill='none' stroke='white' stroke-opacity='.12' stroke-width='3'%3E%3Ccircle cx='600' cy='280' r='90'/%3E%3Ccircle cx='600' cy='280' r='30'/%3E%3Cpath d='M600 0v560M0 160h190v240H0M1200 160h-190v240h190M0 40h70a240 240 0 0 1 0 480H0M1200 40h-70a240 240 0 0 0 0 480h70'/%3E%3C/svg%3E") center / cover; }
+.intro-nba .i-ball { width: clamp(90px, 16vw, 130px); height: clamp(90px, 16vw, 130px); animation: bounce 1s cubic-bezier(.3, 0, .7, 1) both; filter: drop-shadow(0 20px 30px rgba(0, 0, 0, .5)); }
+.intro-nba .i-ball svg { width: 100%; height: 100%; }
+.intro-nba .i-ball circle { fill: #ff7a1a; stroke: #3a1400; stroke-width: 3; }
+.intro-nba .i-ball path { fill: none; stroke: #3a1400; stroke-width: 3; }
+@keyframes bounce {
+  0% { transform: translateY(-70vh) rotate(0); } 38% { transform: translateY(0) scale(1.08, .9) rotate(140deg); }
+  55% { transform: translateY(-22vh) rotate(220deg); } 72% { transform: translateY(0) scale(1.04, .95) rotate(290deg); }
+  84% { transform: translateY(-6vh) rotate(330deg); } 100% { transform: translateY(0) rotate(360deg); } }
+.intro-nba .i-title span { font-family: "Bebas Neue", sans-serif; font-size: clamp(80px, 18vw, 170px); line-height: .85; letter-spacing: .04em; text-shadow: 0 0 40px rgba(255, 140, 40, .6); animation: punch .45s .55s cubic-bezier(.2, 1.4, .3, 1) both; }
+.intro-nba .i-title small { animation: fadeUp .4s .8s both; }
+@keyframes punch { from { opacity: 0; transform: scale(1.8); } }
+.intro-nba.leave { animation: circleOut .6s cubic-bezier(.7, 0, .3, 1) forwards; }
+@keyframes circleOut { from { clip-path: circle(150% at 50% 50%); } to { clip-path: circle(0 at 50% 50%); } }
+
+/* campeonato: abertura com o logo */
+.intro-comp .i-pat { position: absolute; inset: 0; background-image: var(--pat); background-size: var(--pat-size, auto); background-position: var(--pat-pos, 0 0); animation: patDrift 2s linear both; }
+@keyframes patDrift { from { transform: scale(1.15); } to { transform: scale(1); } }
+.intro-comp .i-glow { position: absolute; width: 70vmin; height: 70vmin; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--acc) 55%, transparent), transparent 65%); animation: glowIn 1.2s ease-out both; }
+@keyframes glowIn { from { opacity: 0; transform: scale(.4); } }
+.intro-comp .i-logo { position: relative; width: clamp(110px, 22vw, 170px); height: clamp(110px, 22vw, 170px); display: grid; place-items: center; animation: logoIn .7s cubic-bezier(.2, 1.3, .3, 1) both; }
+.intro-comp .i-logo img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 0 30px color-mix(in srgb, var(--acc) 70%, transparent)) drop-shadow(0 20px 30px rgba(0, 0, 0, .5)); }
+@keyframes logoIn { from { opacity: 0; transform: scale(.4) rotate(-12deg); } }
+.intro-comp .i-title span { font-family: "Sora", sans-serif; font-weight: 800; font-size: clamp(32px, 6vw, 60px); letter-spacing: -.04em; line-height: 1; animation: fadeUp .5s .3s both; }
+.intro-comp .i-title small { color: var(--acc); opacity: 1; animation: fadeUp .5s .45s both; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } }
+.intro-comp .i-sweep { position: absolute; top: -20%; bottom: -20%; width: 22%; left: -30%; transform: skewX(-20deg); background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .22), transparent); animation: sweep .9s .35s ease-in-out both; }
+@keyframes sweep { to { left: 130%; } }
+.intro-comp.leave { animation: wipeUp .6s cubic-bezier(.7, 0, .3, 1) forwards; }
+@keyframes wipeUp { to { clip-path: inset(0 0 100% 0); } }
+
+/* =====================================================================
+   Para você
+   ===================================================================== */
+.topnav a.nav-fy:not(.active) { color: var(--brand); }
+:root[data-mode] .topnav a.nav-fy:not(.active) { color: var(--acc); }
+.fy-hero { position: relative; overflow: hidden; isolation: isolate; color: #fff; border: 0;
+  background: radial-gradient(70% 120% at 0% 0%, rgba(47, 212, 124, .55), transparent 60%), radial-gradient(60% 120% at 100% 100%, rgba(124, 92, 255, .55), transparent 60%), linear-gradient(135deg, #062a1a, #1a1240) !important; }
+.fy-hero-in { position: relative; padding: 30px 28px; display: grid; gap: 4px; }
+.fy-hero .eyebrow { color: #8af7c0; }
+.fy-hero h1 { margin: 0; font-size: 40px; font-weight: 800; letter-spacing: -.04em; color: #fff; }
+.fy-hero .sub { color: rgba(255, 255, 255, .78); font-size: 15px; }
+.fy-orb { position: absolute; right: -60px; top: -80px; width: 280px; height: 280px; border-radius: 50%; z-index: -1; filter: blur(2px);
+  background: conic-gradient(from 0deg, #2fd47c, #7c5cff, #00d9ff, #2fd47c); opacity: .35; animation: spin 18s linear infinite;
+  -webkit-mask: radial-gradient(circle, transparent 52%, #000 53%); mask: radial-gradient(circle, transparent 52%, #000 53%); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.fy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.hc-why { font-size: 11.5px; font-weight: 700; color: var(--brand); padding-top: 8px; border-top: 1px dashed var(--line-strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fy-nba { padding: 0; }
+.fy-f1 { display: grid; gap: 2px; padding: 18px 20px; color: #fff; border: 0; background: radial-gradient(80% 140% at 100% 0%, rgba(255, 30, 30, .4), transparent 60%), linear-gradient(135deg, #0b0b0d, #1a0505) !important; }
+.fy-f1 .eyebrow { color: #ff4646; }
+.fy-f1 b { font-family: "Titillium Web", var(--display); font-style: italic; font-weight: 900; text-transform: uppercase; font-size: 24px; }
+.fy-f1 .muted { color: rgba(255, 255, 255, .6); }
+.fy-row .fy-why { padding: 0 18px 10px 92px; margin-top: -6px; }
+
+@media (prefers-reduced-motion: reduce) { .intro { display: none; } .fy-orb { animation: none; } }

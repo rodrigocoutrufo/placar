@@ -1,0 +1,3 @@
+﻿# Opcional: só a camada de IA precisa. O Placar roda sem nada disto (só a biblioteca padrão do Python).
+# No Windows (Python da Microsoft Store), instale assim:  python -m pip install --target .deps -r requirements.txt
+anthropic>=2.8

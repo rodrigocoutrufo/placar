@@ -1,0 +1,12 @@
+# segredos: nunca versionar
+.env
+# cache e contador de requisições (gerados em tempo de execução)
+.cache/
+__pycache__/
+*.pyc
+.claude/
+
+.deps
+# frontend (gerados)
+web/node_modules/
+web/dist/

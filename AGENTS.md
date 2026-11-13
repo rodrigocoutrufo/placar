@@ -1,0 +1,48 @@
+# Placar — guia para agentes (Codex e outros)
+
+App de placar ao vivo: futebol (Brasileirão, Série B, Copa do Brasil, Libertadores, Sul-Americana, Champions e ligas
+europeias), NBA e Fórmula 1. Interface e textos em **português do Brasil**.
+
+## Estrutura
+- `server.py` — ponto de entrada (`python server.py [porta]`, padrão 8080). Chama `placar.server.main`.
+- `placar/` — backend em Python **só com a biblioteca padrão** (sem frameworks):
+  - `server.py` — HTTP, rotas `/api/...`, cache, SSE (`/api/stream`), CSP, agendador em segundo plano.
+  - `sources/` — fontes de dados: `espn.py` (ESPN, rodadas reconstruídas 1–38), `footballdata.py`, `news_rss.py`, `transfermarkt.py`.
+  - `sports/` — `nba.py` (ESPN), `f1.py` (Jolpica/Ergast + ESPN ao vivo), `openf1.py` (análise oficial de corrida, sessões encerradas).
+  - `core/` — `prob.py` (probabilidades), `auth.py` (contas, sessões, captcha PoW), `identity.py`, `news_filter.py`.
+  - `ai/` — IA: `client.py` (Gemini padrão; Anthropic se `ANTHROPIC_API_KEY`; Ollama opcional), `insights.py`, `assistant.py`, `news.py`, `foryou.py`.
+- `web/` — frontend novo: **React 19 + Vite + Framer Motion + TanStack Query**, rotas por hash (`#/...`).
+  - `src/pages/` telas, `src/components/` (Shell, ui, match, Intro, Assistant), `src/lib/` (api, store, live, mode, themes, format, data, registry).
+  - `src/styles/` — `base.css` (tokens e componentes), `screens.css`, `pages.css`. Visual "transmissão esportiva": Barlow Condensed + Inter.
+  - `public/brands/` — logos oficiais (emissoras, NBA, F1).
+  - Compilado em `web/dist`, que o servidor Python serve em `/`.
+- `public/` — frontend antigo (vanilla JS). Não é mais exposto; o servidor só usa como reserva se `web/dist` não existir.
+- `data/transmissoes.json` — onde assistir (editável, relido quando muda).
+- `tests/` — `smoke_test.py` (sobe o servidor e confere ~52 itens) e `test_ai.py` (unitários de IA).
+
+## Rodar
+```bash
+pip install -r requirements.txt --target .deps   # opcional (SDK da Anthropic)
+cd web && npm install && npm run build && cd ..
+python server.py            # http://localhost:8080
+cd web && npm run dev       # desenvolvimento em http://localhost:5173 (proxy /api -> 8090; ver vite.config.js)
+```
+
+## Testes
+```bash
+python tests/smoke_test.py
+python -m unittest tests.test_ai
+```
+Os testes de IA zeram as chaves antes de importar: **nunca** chamar IA real nos testes.
+
+## Regras importantes
+- Segredos só no `.env` (nunca versionar; há `.env.example`). Nunca expor chaves ao frontend; `/api/me` fica bloqueado.
+- Backend sem dependências externas obrigatórias; manter a biblioteca padrão.
+- Textos visíveis em português; comentários no código também.
+- CSP restrita (ver `CSP` em `placar/server.py`): scripts só do próprio site; imagens https; áudio do rádio da F1 liberado em `media-src`.
+- Rotas de esportes passam por uma lista permitida em `placar/server.py` (regex com `/esportes/...`): rota nova precisa entrar lá também.
+
+## Pendências / próximos passos combinados
+1. **IAs "infinitas"**: rodízio entre vários provedores (Gemini, Anthropic, outros grátis) para os créditos não acabarem — `placar/ai/client.py` já tem a base (teto diário `AI_DAILY_REQUESTS`, fallback de modelos do Gemini).
+2. **Hospedagem** (Render ou similar): há `Dockerfile` com build do React em duas etapas.
+3. Possíveis fontes extras avaliadas: API-Sports (precisa de chave, 100 req/dia), Sportradar (pago, enterprise).

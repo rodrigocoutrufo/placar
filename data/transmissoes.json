@@ -1,0 +1,31 @@
+{
+  "_sobre": "Onde assistir no Brasil, por campeonato. Levantamento de novembro de 2026 (veja o README). Edite à vontade: o servidor relê este arquivo quando ele muda. tipo: aberta | fechada | streaming | ppv | youtube",
+  "atualizado_em": "2026-11-04",
+  "campeonatos": {
+    "10": {"nota": "Pela Lei do Mandante, cada jogo passa só em parte destes canais: depende do time da casa.",
+           "canais": [{"nome": "Globo", "tipo": "aberta", "obs": "jogos selecionados"}, {"nome": "Record", "tipo": "aberta", "obs": "1 jogo por rodada"},
+                      {"nome": "sportv", "tipo": "fechada"}, {"nome": "Premiere", "tipo": "ppv"}, {"nome": "Prime Video", "tipo": "streaming", "obs": "jogos selecionados"},
+                      {"nome": "CazéTV", "tipo": "youtube", "obs": "1 jogo por rodada, com a Record"}, {"nome": "ge tv", "tipo": "youtube", "obs": "jogos selecionados"}]},
+    "14": {"nota": "Transmissão multiplataforma: o canal muda a cada jogo.",
+           "canais": [{"nome": "Disney+", "tipo": "streaming"}, {"nome": "ESPN", "tipo": "fechada"}, {"nome": "Xsports", "tipo": "aberta"},
+                      {"nome": "SportyNet", "tipo": "youtube"}, {"nome": "Globo / sportv / Premiere", "tipo": "aberta", "obs": "jogos selecionados"}]},
+    "2": {"nota": "Confira a grade de cada fase: a divisão muda por jogo.",
+          "canais": [{"nome": "Globo", "tipo": "aberta"}, {"nome": "sportv", "tipo": "fechada"}, {"nome": "Premiere", "tipo": "ppv"}, {"nome": "Prime Video", "tipo": "streaming"}]},
+    "7": {"canais": [{"nome": "Globo", "tipo": "aberta", "obs": "jogos selecionados"}, {"nome": "ge tv", "tipo": "youtube"}, {"nome": "ESPN", "tipo": "fechada"},
+                     {"nome": "Disney+", "tipo": "streaming"}, {"nome": "Paramount+", "tipo": "streaming", "obs": "alguns jogos exclusivos"}]},
+    "9": {"canais": [{"nome": "SBT", "tipo": "aberta", "obs": "jogos selecionados"}, {"nome": "ESPN", "tipo": "fechada"}, {"nome": "Disney+", "tipo": "streaming"},
+                     {"nome": "Paramount+", "tipo": "streaming"}]},
+    "106": {"canais": [{"nome": "TNT Sports", "tipo": "fechada"}, {"nome": "HBO Max", "tipo": "streaming"}, {"nome": "SBT / +SBT", "tipo": "aberta", "obs": "jogos de terça-feira"},
+                       {"nome": "TNT Sports no YouTube", "tipo": "youtube", "obs": "31 jogos na temporada"}]},
+    "101": {"canais": [{"nome": "Disney+", "tipo": "streaming", "obs": "todos os jogos"}, {"nome": "ESPN", "tipo": "fechada"}, {"nome": "CazéTV", "tipo": "youtube", "obs": "1 jogo por rodada"}]},
+    "102": {"canais": [{"nome": "CazéTV", "tipo": "youtube", "obs": "todos os jogos"}]},
+    "103": {"nota": "As fontes divergem sobre a divisão desta temporada.",
+            "canais": [{"nome": "CazéTV", "tipo": "youtube"}, {"nome": "Disney+ / ESPN", "tipo": "streaming"}]},
+    "104": {"canais": [{"nome": "CazéTV", "tipo": "youtube"}, {"nome": "sportv", "tipo": "fechada"}, {"nome": "Xsports", "tipo": "aberta"}, {"nome": "Goat", "tipo": "youtube"}]},
+    "105": {"canais": [{"nome": "CazéTV", "tipo": "youtube"}, {"nome": "Xsports", "tipo": "aberta", "obs": "3 jogos por rodada"}]},
+    "nba": {"canais": [{"nome": "ESPN", "tipo": "fechada"}, {"nome": "Disney+", "tipo": "streaming"}, {"nome": "Prime Video", "tipo": "streaming", "obs": "jogos selecionados"},
+                       {"nome": "NBA League Pass", "tipo": "streaming", "obs": "todos os jogos"}]},
+    "f1": {"canais": [{"nome": "Globo", "tipo": "aberta", "obs": "15 GPs na temporada"}, {"nome": "sportv", "tipo": "fechada", "obs": "todas as sessões"},
+                      {"nome": "Globoplay", "tipo": "streaming"}, {"nome": "F1 TV", "tipo": "streaming"}]}
+  }
+}
