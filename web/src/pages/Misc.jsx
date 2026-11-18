@@ -107,7 +107,7 @@ function PlayerPicker({ pool, slot, value, onPick }) {
 export function Compare() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const { data: pool } = useApi('/minijogos/craques', { ttl: 600_000 });
+  const { data: pool } = useApi('/minijogos/craques', { ttl: 600_000, critical: true });
   const { data: comps } = useComps();
   const ids = [params.get('a'), params.get('b')].map((x) => (x ? +x : null));
   const picked = useQuery({

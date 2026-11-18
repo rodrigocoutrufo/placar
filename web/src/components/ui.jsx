@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Component, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion, useMotionValue, useSpring, useTransform, animate } from 'framer-motion';
 import { PERIOD_END, liveLabel, parseISO } from '../lib/format.js';
@@ -36,6 +36,11 @@ export function Head({ children, right, to, sub }) {
 }
 export const Arrow = () => <svg className="arr" viewBox="0 0 16 16" width="14" height="14"><path d="M5 3l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="2" /></svg>;
 export const Skel = ({ h = 120, className = '' }) => <div className={`skel ${className}`} style={{ height: h }} />;
+// carregando um pedaço da tela: esqueleto enquanto busca; se falhar sem dado, erro com "Tentar de novo" ali mesmo
+export function Wait({ q, h = 400 }) {
+  if (q && q.error && q.data === undefined) return <ErrorBox error={q.error} retry={() => q.refetch()} />;
+  return <Skel h={h} />;
+}
 export const Empty = ({ children }) => <div className="empty">{children}</div>;
 export function ErrorBox({ error, retry }) {
   return (
@@ -45,6 +50,20 @@ export function ErrorBox({ error, retry }) {
       {retry && <button className="btn" onClick={retry}>Tentar de novo</button>}
     </Panel>
   );
+}
+
+// Dado principal da tela falhou (ou outro erro de renderização): mostra o erro com "Tentar de novo"
+// em vez de deixar a tela carregando para sempre ou em branco. onReset vem do QueryErrorResetBoundary.
+export class QueryBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error) { console.error(error); }
+  retry = () => { if (this.props.onReset) this.props.onReset(); this.setState({ error: null }); };
+  render() {
+    if (!this.state.error) return this.props.children;
+    const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+    return <ErrorBox error={{ message: offline ? 'Sem internet. Confira a conexão.' : this.state.error.message || 'Erro inesperado.' }} retry={this.retry} />;
+  }
 }
 
 /* ---------- listas que entram em cascata ---------- */

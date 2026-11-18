@@ -5,7 +5,7 @@ import { useOtherLive } from '../lib/live.js';
 import { Taste } from '../lib/store.js';
 import { LOGO } from '../lib/themes.js';
 import { fmtDT } from '../lib/format.js';
-import { Panel, Head, Skel, Empty, Tabs, Stagger, Item, Tilt, Digit, LiveDot, Watch, Icon, ease } from '../components/ui.jsx';
+import { Panel, Head, Skel, Wait, Empty, Tabs, Stagger, Item, Tilt, Digit, LiveDot, Watch, Icon, ease } from '../components/ui.jsx';
 
 export function NBAHero({ sub }) {
   return (
@@ -50,7 +50,7 @@ export default function NBA() {
   const date = params.get('data') || '';
   const other = useOtherLive();
   const live = (other.nba || []).length;
-  const q = useApi(`/esportes/nba/jogos${date ? `?data=${date}` : ''}`, { ttl: 20_000, refetch: live ? 20_000 : false });
+  const q = useApi(`/esportes/nba/jogos${date ? `?data=${date}` : ''}`, { ttl: 20_000, refetch: live ? 20_000 : false, critical: true });
   const tv = useApi('/transmissoes', { ttl: 3_600_000 });
   const w = tv.data && tv.data.campeonatos && tv.data.campeonatos.nba ? { ...tv.data.campeonatos.nba, atualizado_em: tv.data.atualizado_em } : null;
   const d = q.data;
@@ -88,8 +88,9 @@ export default function NBA() {
 }
 
 function Standings() {
-  const { data } = useApi('/esportes/nba/classificacao', { ttl: 300_000 });
-  if (!data) return <Skel h={600} />;
+  const sq = useApi('/esportes/nba/classificacao', { ttl: 300_000 });
+  const { data } = sq;
+  if (!data) return <Wait q={sq} h={600} />;
   return (
     <div className="grid-2">
       {data.map((c) => (

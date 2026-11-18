@@ -165,7 +165,9 @@ export function Auth() {
       setUser(d.usuario);
       navigate(signup ? '/conta?novo=1' : next, { replace: true });
     } catch (err) {
-      if (err.campo) setErrs((o) => ({ ...o, [err.campo]: err.message })); else setMsg({ text: err.message });
+      // erro de um campo que aparece na tela vai para o campo; o resto (captcha, bloqueio, servidor) vai para a mensagem do formulário
+      const shown = signup ? ['nome', 'usuario', 'email', 'senha', 'termos'] : ['login', 'senha'];
+      if (err.campo && shown.includes(err.campo)) setErrs((o) => ({ ...o, [err.campo]: err.message })); else setMsg({ text: err.message });
     } finally { cap.reset(); setBusy(false); }
   };
   const q = params.get('next') ? `?next=${encodeURIComponent(params.get('next'))}` : '';

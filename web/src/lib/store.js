@@ -8,7 +8,7 @@ export const subscribe = (f) => { subs.add(f); return () => subs.delete(f); };
 
 export const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* indisponível */ } version++; emit(); scheduleSync(); },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* indisponível */ } markDirty(k); version++; emit(); scheduleSync(); },
 };
 let version = 0;
 export const useStoreVersion = () => useSyncExternalStore(subscribe, () => version);
@@ -38,6 +38,7 @@ export const Taste = {
     const x = bag[id];
     bag[id] = { s: Math.min(200, dec(x) + w), at: Date.now(), ...(meta ? { m: meta } : x && x.m ? { m: x.m } : {}) };
     try { localStorage.setItem(KEY, JSON.stringify(d)); } catch { /* cheio */ }
+    markDirty(KEY);
     scheduleSync();
   },
   score(kind, id) { return dec((this.data()[kind] || {})[id]); },
@@ -72,6 +73,7 @@ export function toggleTheme() {
   const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
   document.documentElement.dataset.theme = next;
   try { localStorage.setItem('placar.theme', next); } catch { /* */ }
+  markDirty('placar.theme');
   version++; emit(); scheduleSync();
 }
 
@@ -91,25 +93,42 @@ function localData() {
   } catch { /* */ }
   return out;
 }
+// Mudanças feitas neste aparelho com a conta conectada e ainda não enviadas ao servidor ("pendentes").
+// Na hora de juntar com a cópia da conta, a versão local delas vale inteira: sem isso, um favorito
+// removido aqui voltaria da cópia antiga do servidor.
+const DIRTY = 'placar.sync.pendente';
+const dirty = () => { try { return JSON.parse(localStorage.getItem(DIRTY) || '{}'); } catch { return {}; } };
+function markDirty(k) {
+  if (!account.user || !SYNC_RX.test(k)) return; // sem conta não há o que proteger: o servidor ainda não tem nada deste aparelho
+  try { localStorage.setItem(DIRTY, JSON.stringify({ ...dirty(), [k]: Date.now() })); } catch { /* */ }
+}
+async function push() {
+  const started = Date.now();
+  const r = await fetch('/api/conta/dados', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'placar' }, body: JSON.stringify({ dados: localData() }) });
+  if (!r.ok) throw new Error(`Erro ${r.status}`);
+  // enviado: deixa de ser pendente (o que mudou durante o envio continua pendente)
+  const d = dirty();
+  Object.keys(d).forEach((k) => { if (d[k] <= started) delete d[k]; });
+  try { localStorage.setItem(DIRTY, JSON.stringify(d)); } catch { /* */ }
+}
 function scheduleSync(now = false) {
   if (!account.user) return;
   clearTimeout(syncTimer);
-  syncTimer = setTimeout(() => {
-    fetch('/api/conta/dados', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'placar' }, body: JSON.stringify({ dados: localData() }) }).catch(() => {});
-  }, now ? 0 : 1500);
+  syncTimer = setTimeout(() => { push().catch(() => {}); }, now ? 0 : 1500);
 }
 // junta o que está salvo na conta com o que está neste aparelho (une favoritos, palpites...) e envia de volta
 export async function syncPull() {
   if (!account.user) return false;
   let d;
   try { d = await (await fetch('/api/conta/dados', { credentials: 'same-origin', headers: { 'X-Requested-With': 'placar' } })).json(); } catch { return false; }
-  const server = (d && d.dados) || {}, local = localData();
+  const server = (d && d.dados) || {}, local = localData(), pending = dirty();
   let changed = false;
   Object.entries(server).forEach(([k, sv]) => {
     if (!SYNC_RX.test(k)) return;
     const lv = local[k];
     let v = lv;
-    if (lv === undefined) v = sv;
+    if (pending[k] && lv !== undefined) v = lv; // mudou aqui e ainda não foi enviado: a versão deste aparelho vale
+    else if (lv === undefined) v = sv;
     else if (sv && lv && typeof sv === 'object' && typeof lv === 'object' && !Array.isArray(sv)) v = { ...sv, ...lv };
     if (JSON.stringify(v) !== JSON.stringify(lv)) {
       changed = true;

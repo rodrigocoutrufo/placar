@@ -1,7 +1,7 @@
 import { StrictMode, Suspense, lazy, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider, QueryErrorResetBoundary } from '@tanstack/react-query';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import '@fontsource/inter/400.css';
 import '@fontsource/inter/500.css';
@@ -21,7 +21,7 @@ import { Mode } from './lib/mode.js';
 import { Header, Ticker, MobileBar, Footer, GoalToasts, NotFound } from './components/Shell.jsx';
 import Intro from './components/Intro.jsx';
 import Assistant from './components/Assistant.jsx';
-import { ease } from './components/ui.jsx';
+import { ease, QueryBoundary } from './components/ui.jsx';
 import Home from './pages/Home.jsx';
 
 const Competitions = lazy(() => import('./pages/Competitions.jsx'));
@@ -59,7 +59,13 @@ function ModeByRoute() {
 function Page({ children }) {
   return (
     <motion.main className="page" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10, transition: { duration: 0.18 } }} transition={{ duration: 0.45, ease }}>
-      <Suspense fallback={<div className="skel" style={{ height: 420 }} />}>{children}</Suspense>
+      <QueryErrorResetBoundary>
+        {({ reset }) => (
+          <QueryBoundary onReset={reset}>
+            <Suspense fallback={<div className="skel" style={{ height: 420 }} />}>{children}</Suspense>
+          </QueryBoundary>
+        )}
+      </QueryErrorResetBoundary>
     </motion.main>
   );
 }

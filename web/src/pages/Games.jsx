@@ -155,7 +155,7 @@ function Bolao() {
 function seeded(seed, n) { let h = 2166136261; for (const ch of seed) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return Math.abs(h) % n; }
 function Craque() {
   useStoreVersion();
-  const { data: pool } = useApi('/minijogos/craques', { ttl: 600_000 });
+  const { data: pool } = useApi('/minijogos/craques', { ttl: 600_000, critical: true });
   const [mode, setMode] = useState('dia');
   const [free, setFree] = useState(null);
   const [q, setQ] = useState('');

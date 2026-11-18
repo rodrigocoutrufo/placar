@@ -3,14 +3,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useApi } from '../lib/api.js';
 import { useComps } from '../lib/data.js';
 import { timeAgo } from '../lib/format.js';
-import { Skel, Empty, Stagger, Item, CompLogo, ScrollRow, isDark, ease } from '../components/ui.jsx';
+import { Skel, Wait, Empty, Stagger, Item, CompLogo, ScrollRow, isDark, ease } from '../components/ui.jsx';
 
 // redação: manchete principal grande e grade editorial
 export default function News() {
   const [params, setParams] = useSearchParams();
   const comp = params.get('c') || '';
   const { data: comps } = useComps();
-  const { data } = useApi(`/noticias?por_pagina=30${comp ? `&campeonato_id=${comp}` : ''}`, { ttl: 600_000 });
+  const newsQ = useApi(`/noticias?por_pagina=30${comp ? `&campeonato_id=${comp}` : ''}`, { ttl: 600_000 });
+  const { data } = newsQ;
   const list = (data && data.noticias) || [];
   const [lead, ...rest] = list;
   return (
@@ -26,7 +27,7 @@ export default function News() {
       </div></ScrollRow>
       <AnimatePresence mode="wait">
         <motion.div key={comp} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.35, ease }}>
-          {!data ? <Skel h={500} /> : !list.length ? <Empty>Sem notícias agora.</Empty> : (
+          {!data ? <Wait q={newsQ} h={500} /> : !list.length ? <Empty>Sem notícias agora.</Empty> : (
             <>
               <a className="lead-story" href={lead.link} target="_blank" rel="noopener noreferrer">
                 {lead.imagem && <motion.img src={lead.imagem} alt="" initial={{ scale: 1.08 }} animate={{ scale: 1 }} transition={{ duration: 1.2, ease }} />}

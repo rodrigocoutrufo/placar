@@ -14,7 +14,7 @@ export default function NBAGame() {
   const { id } = useParams();
   const [tab, setTab] = useState('resumo');
   const [side, setSide] = useState('casa');
-  const first = useApi(`/esportes/nba/jogo/${id}`, { ttl: 15_000 });
+  const first = useApi(`/esportes/nba/jogo/${id}`, { ttl: 15_000, critical: true });
   const g0 = first.data;
   const q = useApi(`/esportes/nba/jogo/${id}`, { ttl: 15_000, refetch: g0 && g0.status === 'andamento' ? 15_000 : false });
   const tv = useApi('/transmissoes', { ttl: 3_600_000 });

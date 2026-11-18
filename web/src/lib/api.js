@@ -25,11 +25,15 @@ export async function post(path, data) {
   return body;
 }
 
+// erro sem nenhum dado para mostrar: a tela inteira vira a caixa de erro com "Tentar de novo" (ver QueryBoundary)
+export const failHard = (_err, query) => query.state.data === undefined;
+
 // useApi('/campeonatos', { ttl: 600_000 })  ->  { data, isLoading, error }
-export function useApi(path, { ttl = 30_000, refetch = false, enabled = true } = {}) {
+// critical: é o dado principal da tela; se falhar (servidor fora, 503...) a tela mostra o erro em vez de carregar para sempre
+export function useApi(path, { ttl = 30_000, refetch = false, enabled = true, critical = false } = {}) {
   return useQuery({
     queryKey: [path], queryFn: () => get(path), staleTime: ttl, enabled: enabled && !!path,
-    refetchInterval: refetch || false,
+    refetchInterval: refetch || false, throwOnError: critical ? failHard : false,
   });
 }
 

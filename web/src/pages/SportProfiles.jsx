@@ -62,7 +62,7 @@ export function NBATeam() {
   const id = +useParams().id;
   const [params, setParams] = useSearchParams();
   const tab = params.get('aba') || 'visao';
-  const { data: t } = useApi(`/esportes/nba/time/${id}`, { ttl: 600_000 });
+  const { data: t } = useApi(`/esportes/nba/time/${id}`, { ttl: 600_000, critical: true });
   useEffect(() => { if (t) { Taste.bump('n', id, 3, { n: t.curto || t.nome, e: t.logo }); Taste.bump('e', 'nba', 1); } }, [t]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!t) return <Skel h={420} />;
   const c = t.campanha || {};
@@ -116,7 +116,7 @@ export function NBATeam() {
 /* ================= NBA: jogador ================= */
 export function NBAPlayer() {
   const id = +useParams().id;
-  const { data: p } = useApi(`/esportes/nba/jogador/${id}`, { ttl: 600_000 });
+  const { data: p } = useApi(`/esportes/nba/jogador/${id}`, { ttl: 600_000, critical: true });
   if (!p) return <Skel h={420} />;
   const t = p.time || {};
   const season = (p.medias || [])[0], career = (p.medias || [])[1];
@@ -151,7 +151,7 @@ export function NBAPlayer() {
 const posClass = (r) => (!r.classificado ? 'dnf' : r.posicao === 1 ? 'p1' : r.posicao <= 3 ? 'pod' : r.posicao <= 10 ? 'pts' : '');
 export function F1Driver() {
   const id = useParams().id;
-  const { data: d } = useApi(`/esportes/f1/piloto/${id}`, { ttl: 600_000 });
+  const { data: d } = useApi(`/esportes/f1/piloto/${id}`, { ttl: 600_000, critical: true });
   useEffect(() => { if (d) { Taste.bump('p', id, 3, { n: d.nome, e: d.bandeira }); Taste.bump('e', 'f1', 1); } }, [d]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!d) return <Skel h={420} />;
   const team = d.equipe || {}, cs = d.campeonato || {}, cr = d.carreira || {}, tm = d.companheiro;
@@ -186,7 +186,7 @@ export function F1Driver() {
 /* ================= F1: equipe ================= */
 export function F1Team() {
   const id = useParams().id;
-  const { data: t } = useApi(`/esportes/f1/equipe/${id}`, { ttl: 600_000 });
+  const { data: t } = useApi(`/esportes/f1/equipe/${id}`, { ttl: 600_000, critical: true });
   if (!t) return <Skel h={420} />;
   const cs = t.campeonato || {}, cr = t.carreira || {};
   const maxPts = Math.max(1, ...t.temporada.map((r) => r.pontos));

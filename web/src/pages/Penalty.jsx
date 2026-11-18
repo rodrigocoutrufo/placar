@@ -9,7 +9,7 @@ import { fetchCached, soft } from '../lib/api.js';
 import { useComps } from '../lib/data.js';
 import { store, getFavs, useStoreVersion } from '../lib/store.js';
 import { flattenTable, kitColor, norm, shortName } from '../lib/format.js';
-import { Panel, Head, Skel, Empty, Crest, CountUp, Icon, ease } from '../components/ui.jsx';
+import { Panel, Head, Skel, Empty, ErrorBox, Crest, CountUp, Icon, ease } from '../components/ui.jsx';
 
 const G = { l: 90, r: 310, t: 62, b: 172 }, SPOT = { x: 200, y: 262 }, KEEPER = { x: 200, y: 172 };
 const LEVELS = { facil: { read: 0.22, reach: 0.86, mine: 1.22, window: 2400, label: 'Fácil' }, normal: { read: 0.38, reach: 1, mine: 1, window: 1900, label: 'Normal' }, dificil: { read: 0.55, reach: 1.12, mine: 0.86, window: 1450, label: 'Difícil' } };
@@ -56,7 +56,7 @@ export default function Penalties() {
   const leagues = leaguesQ.data;
   const all = leagues ? leagues.flatMap((x) => x.teams) : [];
   useEffect(() => {
-    if (!leagues || me) return;
+    if (!leagues || !all.length || me) return; // sem times (consultas vazias ou fora do ar): não há quem escolher
     const fav = Object.values(getFavs())[0];
     const m = all.find((t) => fav && +t.time_id === +fav.time_id) || leagues[0].teams[0];
     setMe(m);
@@ -73,8 +73,9 @@ export default function Penalties() {
   const [loading, setLoading] = useState(false);
   const start = async () => { setLoading(true); const [a, b] = await Promise.all([squad(me), squad(cpu)]); setLoading(false); setMatch({ id: Date.now(), sqMe: a, sqCpu: b }); };
 
+  if (leaguesQ.error && !leagues) return <Shell side={<Side />}><ErrorBox error={leaguesQ.error} retry={leaguesQ.refetch} /></Shell>;
+  if (leagues && all.length < 2) return <Shell side={<Side />}><Panel><Empty>Sem times disponíveis agora. Tente de novo em instantes.<div style={{ marginTop: 12 }}><button className="btn" onClick={() => leaguesQ.refetch()}>Tentar de novo</button></div></Empty></Panel></Shell>;
   if (!leagues || !me) return <Shell side={<Side />}><Skel h={460} /></Shell>;
-  if (all.length < 2) return <Shell side={<Side />}><Panel><Empty>Sem times disponíveis agora.</Empty></Panel></Shell>;
   if (match) return <Shell side={<Side />}><Shootout key={match.id} me={me} cpu={cpu} level={level} sqMe={match.sqMe} sqCpu={match.sqCpu} again={start} teams={() => setMatch(null)} /></Shell>;
   const stars = (f) => <span className="pen-stars" title="Força pela posição na tabela">{[0.2, 0.4, 0.6, 0.8, 1].map((s) => <i key={s} className={f >= s - 0.1 ? 'on' : ''}>★</i>)}</span>;
   const select = (sel, onChange) => (

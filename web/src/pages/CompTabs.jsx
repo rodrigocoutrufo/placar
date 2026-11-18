@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useApi, fetchCached, soft } from '../lib/api.js';
 import { store, getFavs, useStoreVersion } from '../lib/store.js';
 import { ZONES, flattenTable, parseISO, fmtShort, barColors, winnerSide, penScore, parseDate, norm } from '../lib/format.js';
-import { Panel, Head, Skel, Empty, ErrorBox, Stagger, Item, Crest, CountUp, LiveDot, LiveMinute, Icon, ease } from '../components/ui.jsx';
+import { Panel, Head, Skel, Wait, Empty, ErrorBox, Stagger, Item, Crest, CountUp, LiveDot, LiveMinute, Icon, ease } from '../components/ui.jsx';
 
 const pct = (v) => (v == null ? '–' : v >= 99.95 ? '100%' : v > 0 && v < 0.1 ? '<0,1%' : `${v.toFixed(1).replace('.', ',')}%`);
 
@@ -65,8 +65,9 @@ function applyResults(rows, results) {
 
 /* ---------- Chances ---------- */
 export function Chances({ id }) {
-  const { data: d, error } = useApi(`/campeonatos/${id}/chances`, { ttl: 600_000 });
-  if (error) return <ErrorBox error={error} />;
+  const tq = useApi(`/campeonatos/${id}/chances`, { ttl: 600_000 });
+  const { data: d, error } = tq;
+  if (error && !tq.data) return <ErrorBox error={error} retry={() => tq.refetch()} />;
   if (!d) return <Panel><p className="pad muted small">Simulando milhares de campeonatos com os jogos que faltam…</p><div className="pad"><Skel h={380} /></div></Panel>;
   const zones = d.zonas.filter((z) => ZONES[z.chave]);
   const favs = getFavs();
@@ -115,7 +116,8 @@ function ProbRow({ m }) {
 /* ---------- Simulador ---------- */
 export function Simulator({ id }) {
   useStoreVersion();
-  const { data: d, error } = useApi(`/campeonatos/${id}/chances`, { ttl: 600_000 });
+  const simQ = useApi(`/campeonatos/${id}/chances`, { ttl: 600_000 });
+  const { data: d, error } = simQ;
   const key = `placar.sim.${id}`;
   const sim = store.get(key, {});
   const [gi, setGi] = useState(null);
@@ -126,7 +128,7 @@ export function Simulator({ id }) {
     games.forEach((m) => { const k = gk(m); let g = out.find((x) => x.k === k); if (!g) { g = { k, ms: [] }; out.push(g); } g.ms.push(m); });
     return out;
   }, [games]);
-  if (error) return <ErrorBox error={error} />;
+  if (error && !d) return <ErrorBox error={error} retry={() => simQ.refetch()} />;
   if (!d) return <Skel h={500} />;
   const soon = Date.now() - 864e5;
   const idx = gi ?? Math.max(0, groups.findIndex((g) => g.ms.some((m) => (parseISO(m.data) || 0) >= soon)));
@@ -197,8 +199,8 @@ function tieResult(c) {
 }
 export function Bracket({ c }) {
   const knockout = (c.fases || []).filter((f) => f.tipo === 'mata-mata');
-  const q = useQuery({ queryKey: ['bracket', c.campeonato_id], queryFn: () => Promise.all(knockout.map((f) => soft(fetchCached(`/campeonatos/${c.campeonato_id}/fases/${f.fase_id}`, 120_000)))), staleTime: 120_000 });
-  if (!q.data) return <Skel h={500} />;
+  const q = useQuery({ queryKey: ['bracket', c.campeonato_id], throwOnError: false, queryFn: () => Promise.all(knockout.map((f) => soft(fetchCached(`/campeonatos/${c.campeonato_id}/fases/${f.fase_id}`, 120_000)))), staleTime: 120_000 });
+  if (!q.data) return <Wait q={q} h={500} />;
   const valid = q.data.filter((f) => f && (f.chaves || []).length);
   let start = valid.findIndex((f) => f.chaves.length <= 8);
   if (start < 0) start = Math.max(0, valid.length - 4);
@@ -232,8 +234,9 @@ export function Bracket({ c }) {
 
 /* ---------- Estatísticas do campeonato ---------- */
 export function CompStats({ id }) {
-  const { data } = useApi(`/campeonatos/${id}/tabela`, { ttl: 60_000 });
-  if (!data) return <Skel h={500} />;
+  const sq = useApi(`/campeonatos/${id}/tabela`, { ttl: 60_000 });
+  const { data } = sq;
+  if (!data) return <Wait q={sq} h={500} />;
   const rows = flattenTable(data).flatMap((g) => g.rows);
   if (!rows.length) return <Panel><Empty>Estatísticas disponíveis quando houver classificação.</Empty></Panel>;
   const goals = rows.reduce((a, r) => a + r.gols_pro, 0), games = rows.reduce((a, r) => a + r.jogos, 0) / 2, draws = rows.reduce((a, r) => a + r.empates, 0) / 2;

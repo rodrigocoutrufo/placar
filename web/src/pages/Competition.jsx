@@ -7,7 +7,7 @@ import { Mode } from '../lib/mode.js';
 import { Taste } from '../lib/store.js';
 import { flattenTable, isLeague, regionLabel, roundsList, faseMatches, parseDate, fmtDay, timeAgo } from '../lib/format.js';
 import { compLogoDark } from '../lib/themes.js';
-import { Panel, Head, Skel, Empty, ErrorBox, Tabs, Stagger, Item, Watch, CountUp, Icon, LiveDot, ease } from '../components/ui.jsx';
+import { Panel, Head, Skel, Wait, Empty, ErrorBox, Tabs, Stagger, Item, Watch, CountUp, Icon, LiveDot, ease } from '../components/ui.jsx';
 import { Chances, Simulator, Bracket, CompStats, MovingTable, liveStandings } from './CompTabs.jsx';
 import { Standings, RankList, MatchRow } from '../components/match.jsx';
 
@@ -23,7 +23,7 @@ export default function Competition() {
   const yLogo = useTransform(scrollY, [0, 400], [0, 90]);
   const rot = useTransform(scrollY, [0, 400], [-8, 4]);
 
-  if (camp.error) return <ErrorBox error={camp.error} retry={camp.refetch} />;
+  if (camp.error && !camp.data) return <ErrorBox error={camp.error} retry={camp.refetch} />;
   if (!c) return <><Skel h={320} /><Skel h={500} /></>;
   if (Array.isArray(fases.data) && fases.data.length) c.fases = fases.data;
   const league = isLeague(c);
@@ -86,10 +86,11 @@ export default function Competition() {
 }
 
 function Table({ id }) {
-  const { data, error } = useApi(`/campeonatos/${id}/tabela`, { ttl: 60_000, refetch: 60_000 });
+  const tq = useApi(`/campeonatos/${id}/tabela`, { ttl: 60_000, refetch: 60_000 });
+  const { data, error } = tq;
   const live = useLive();
   const [mode, setMode] = useState('atual');
-  if (error) return <ErrorBox error={error} />;
+  if (error && !data) return <ErrorBox error={error} retry={() => tq.refetch()} />;
   if (!data) return <Skel h={600} />;
   const groups = flattenTable(data);
   if (!groups.length) return <Panel><Empty>Sem tabela de pontos nesta fase. Veja o <Link to={`/campeonato/${id}/chaveamento`}>chaveamento</Link>.</Empty></Panel>;
@@ -145,13 +146,14 @@ function Games({ c }) {
   const i = idx ?? curIdx;
   const sel = list[i];
   const path = !sel ? '' : league ? `/campeonatos/${id}/rodadas/${sel.rodada}` : `/campeonatos/${id}/fases/${sel.fase_id}`;
-  const { data } = useApi(path, { ttl: 60_000, enabled: !!path });
+  const gq = useApi(path, { ttl: 60_000, enabled: !!path });
+  const { data } = gq;
   const live = useLive();
   const lm = new Map(live.map((p) => [p.partida_id, p]));
   const games = data ? (league ? data.partidas || [] : faseMatches(data)).map((p) => lm.get(p.partida_id) || p) : null;
   const byDay = new Map();
   (games || []).slice().sort((a, b) => (parseDate(a) || 0) - (parseDate(b) || 0)).forEach((p) => { const k = fmtDay(parseDate(p)); if (!byDay.has(k)) byDay.set(k, []); byDay.get(k).push(p); });
-  if (league && !rounds.data) return <Skel h={500} />;
+  if (league && !rounds.data) return <Wait q={rounds} h={500} />;
   return (
     <Panel className="flush">
       <div className="roundbar">
@@ -163,7 +165,7 @@ function Games({ c }) {
         </AnimatePresence>
         <button className="ibtn" disabled={i >= list.length - 1} onClick={() => setIdx(i + 1)} aria-label="Próxima">{Icon.right}</button>
       </div>
-      {!games ? <div className="pad"><Skel h={400} /></div> : games.length ? (
+      {!games ? <div className="pad"><Wait q={gq} h={400} /></div> : games.length ? (
         <Stagger key={path}>
           {[...byDay].map(([d, ps]) => (
             <div key={d}><div className="date-sep">{d}</div>{ps.map((p) => <MatchRow key={p.partida_id} p={p} />)}</div>

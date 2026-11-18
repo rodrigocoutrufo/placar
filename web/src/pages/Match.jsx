@@ -7,7 +7,7 @@ import { useComps } from '../lib/data.js';
 import { Mode } from '../lib/mode.js';
 import { tasteMatch } from '../lib/store.js';
 import { isLive, isLeague, parseDate, fmtDay, fmtTime, penScore, evMinute, barColors, kitColor, inkFor, flattenTable, shortName, titleize, winnerSide } from '../lib/format.js';
-import { Panel, Head, Skel, Empty, ErrorBox, Tabs, Stagger, Item, Reveal, Crest, CompLogo, Digit, LiveMinute, LiveDot, Watch, Form, CountUp, Icon, ease } from '../components/ui.jsx';
+import { Panel, Head, Skel, Wait, Empty, ErrorBox, Tabs, Stagger, Item, Reveal, Crest, CompLogo, Digit, LiveMinute, LiveDot, Watch, Form, CountUp, Icon, ease } from '../components/ui.jsx';
 import { Standings, MatchRow } from '../components/match.jsx';
 
 export default function Match() {
@@ -24,7 +24,7 @@ export default function Match() {
   const sig = lp && `${lp.placar_mandante}-${lp.placar_visitante}-${lp.periodo}-${lp.status}`;
   useEffect(() => { if (sig && p) q.refetch(); }, [sig]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (q.error) return <ErrorBox error={q.error} retry={q.refetch} />;
+  if (q.error && !q.data) return <ErrorBox error={q.error} retry={q.refetch} />;
   if (!p) return <><Skel h={340} /><Skel h={500} /></>;
   const m = lp ? { ...p, ...lp, gols: p.gols, escalacoes: p.escalacoes, estatisticas: p.estatisticas } : p;
   const onlyFd = p.fonte === 'football-data';
@@ -338,8 +338,9 @@ function Lineups({ p }) {
 }
 
 function TableTab({ p, camp }) {
-  const { data } = useApi(`/campeonatos/${camp.campeonato_id}/tabela`, { ttl: 60_000 });
-  if (!data) return <Skel h={500} />;
+  const tq = useApi(`/campeonatos/${camp.campeonato_id}/tabela`, { ttl: 60_000 });
+  const { data } = tq;
+  if (!data) return <Wait q={tq} h={500} />;
   const g = flattenTable(data);
   if (!g.length) return <Panel><Empty>Sem tabela.</Empty></Panel>;
   return <Panel className="flush"><Standings rows={g[0].rows} campId={camp.campeonato_id} highlight={[+p.time_mandante.time_id, +p.time_visitante.time_id]} /></Panel>;

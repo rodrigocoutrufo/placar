@@ -11,7 +11,7 @@ const classic = (h) => `#${h}`;
 
 export default function F1() {
   const { tab = 'pilotos' } = useParams();
-  const q = useApi('/esportes/f1', { ttl: 60_000 });
+  const q = useApi('/esportes/f1', { ttl: 60_000, critical: true });
   const tv = useApi('/transmissoes', { ttl: 3_600_000 });
   const other = useOtherLive();
   const d = q.data;

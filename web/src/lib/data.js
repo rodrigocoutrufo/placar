@@ -1,6 +1,6 @@
 // Consultas compostas (várias chamadas à API) usadas por mais de uma tela.
 import { useQuery } from '@tanstack/react-query';
-import { fetchCached, soft, get } from './api.js';
+import { fetchCached, soft, get, failHard } from './api.js';
 import { isLeague, roundsList, faseMatches, parseDate, isLive } from './format.js';
 import { matchAffinity, Taste } from './store.js';
 
@@ -34,7 +34,7 @@ export async function loadAgenda(comps) {
 }
 
 export function useComps() {
-  return useQuery({ queryKey: ['/campeonatos'], queryFn: () => get('/campeonatos'), staleTime: 600_000 });
+  return useQuery({ queryKey: ['/campeonatos'], queryFn: () => get('/campeonatos'), staleTime: 600_000, throwOnError: failHard });
 }
 export function useAgenda(comps) {
   return useQuery({ queryKey: ['agenda', (comps || []).length], queryFn: () => loadAgenda(comps), enabled: !!comps, staleTime: 60_000 });

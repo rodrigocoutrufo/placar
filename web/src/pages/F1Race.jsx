@@ -10,7 +10,7 @@ const flag = (src, w = 20) => (src ? <img className="flag" src={src} alt="" widt
 
 export default function F1Race() {
   const { rnd } = useParams();
-  const { data: r } = useApi(`/esportes/f1/corrida/${rnd}`, { ttl: 120_000 });
+  const { data: r } = useApi(`/esportes/f1/corrida/${rnd}`, { ttl: 120_000, critical: true });
   if (!r) return <><Skel h={260} /><Skel h={500} /></>;
   const pilot = (p) => (
     <a className="f1p" href={`#/f1/piloto/${p.id}`}>{flag(p.bandeira, 18)}<span><b>{p.nome}</b><small>{(p.equipe || {}).nome}</small></span></a>
