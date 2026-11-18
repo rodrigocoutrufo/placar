@@ -150,6 +150,10 @@ def _color(c):
     return "#" + c if c and re.fullmatch(r"[0-9a-fA-F]{6}", c) else None
 
 
+# Times cujo logo "500-dark" da ESPN ainda é o escudo antigo (ex.: Athletico-PR, 3458, mostra o redondo de antes de 2018)
+DARK_LOGO_OUTDATED = {"3458"}
+
+
 def team(t: dict) -> dict:
     logo = t.get("logo") or next((l.get("href") for l in t.get("logos", []) if "default" in l.get("rel", [])), None) \
         or (t.get("logos") or [{}])[0].get("href")
@@ -158,6 +162,8 @@ def team(t: dict) -> dict:
         or (logo.replace("/500/", "/500-dark/") if logo and "/teamlogos/soccer/500/" in logo else None)
     name = t.get("shortDisplayName") or t.get("displayName") or t.get("name") or ""
     tid = str(t["id"])
+    if tid in DARK_LOGO_OUTDATED:  # versão escura da ESPN com escudo antigo: usa a normal
+        logo_dark = logo
     if "TBD" in name:  # vaga ainda não definida (ex.: final de copa)
         return {"time_id": OFFSET + int(tid), "nome_popular": "A definir", "sigla": "–", "escudo": None, "cor": None, "cor_secundaria": None}
     c1, c2 = _color(t.get("color")), _color(t.get("alternateColor"))
