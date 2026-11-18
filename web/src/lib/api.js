@@ -7,7 +7,7 @@ export const queryClient = new QueryClient({
 export async function get(path) {
   let r;
   try { r = await fetch('/api' + path, { credentials: 'same-origin' }); } catch {
-    throw new Error('Sem conexão com o servidor do Placar.');
+    throw new Error('Sem conexão com o servidor da Vyra.');
   }
   const body = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(body.message || `Erro ${r.status}`);

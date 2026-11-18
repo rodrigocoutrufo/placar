@@ -76,13 +76,13 @@ export function About() {
   ];
   return (
     <>
-      <motion.h1 className="page-title" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>Sobre o Placar</motion.h1>
+      <motion.h1 className="page-title" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>Sobre a Vyra</motion.h1>
       <p className="lead-p">Placares ao vivo, tabelas, escalações, estatísticas e onde assistir: futebol brasileiro e europeu, NBA e Fórmula 1.</p>
       <div className="grid-main">
         <div className="col">
           <Panel><Head>Fontes dos dados</Head><Stagger className="list">{src.map(([n, u, d]) => <Item key={n} as="a" className="li" href={u} target="_blank" rel="noopener noreferrer"><span style={{ flex: 1 }}><b>{n}</b><small className="muted" style={{ display: 'block' }}>{d}</small></span>{Icon.right}</Item>)}</Stagger></Panel>
-          <Panel><Head>Aviso</Head><p className="pad muted">O Placar não é afiliado a clubes, ligas, federações, emissoras ou às fontes acima. Marcas, logos, escudos e imagens pertencem aos seus donos e aparecem só para identificar cada competição, time e canal. Os dados podem ter atraso ou conter erros; confira sempre as fontes oficiais.</p></Panel>
-          <Panel><Head>Privacidade</Head><p className="pad muted">O Placar não usa cookies de rastreamento. Times favoritos, palpites, recordes dos minijogos e preferências ficam neste navegador e, se você criar uma conta, também na sua conta. As notícias abrem o site do portal de origem.</p></Panel>
+          <Panel><Head>Aviso</Head><p className="pad muted">A Vyra não é afiliada a clubes, ligas, federações, emissoras ou às fontes acima. Marcas, logos, escudos e imagens pertencem aos seus donos e aparecem só para identificar cada competição, time e canal. Os dados podem ter atraso ou conter erros; confira sempre as fontes oficiais.</p></Panel>
+          <Panel><Head>Privacidade</Head><p className="pad muted">A Vyra não usa cookies de rastreamento. Times favoritos, palpites, recordes dos minijogos e preferências ficam neste navegador e, se você criar uma conta, também na sua conta. As notícias abrem o site do portal de origem.</p></Panel>
         </div>
       </div>
     </>

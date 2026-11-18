@@ -1,4 +1,4 @@
-# Placar — guia para agentes (Codex e outros)
+# Vyra — guia para agentes (Codex e outros)
 
 App de placar ao vivo: futebol (Brasileirão, Série B, Copa do Brasil, Libertadores, Sul-Americana, Champions e ligas
 europeias), NBA e Fórmula 1. Interface e textos em **português do Brasil**.

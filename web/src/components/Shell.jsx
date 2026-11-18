@@ -43,7 +43,7 @@ export function Header() {
   return (
     <header className="hdr">
       <div className="hdr-in">
-        <Link to="/" className="brand" aria-label="Placar — início"><Mark /><span>PLACAR</span></Link>
+        <Link to="/" className="brand" aria-label="Vyra — início"><Mark /><span>VYRA</span></Link>
         <AnimatePresence mode="wait">
           {mode.kind && (
             <motion.div key={mode.key} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.35, ease }}>
@@ -138,7 +138,7 @@ export function MobileBar() {
 export function Footer() {
   return (
     <footer className="ftr">
-      <div><Mark /><b>PLACAR</b></div>
+      <div><Mark /><b>VYRA</b></div>
       <p>Dados: API Futebol · ESPN (fonte pública, não oficial) · football-data.org · Jolpica. Horários de Brasília.</p>
       <p><Link to="/sobre">Sobre, fontes e privacidade</Link> · <Link to="/minijogos">Minijogos</Link> · <Link to="/comparar">Comparar jogadores</Link> · <Link to="/favoritos">Favoritos</Link></p>
     </footer>

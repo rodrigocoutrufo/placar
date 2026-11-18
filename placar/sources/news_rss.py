@@ -25,7 +25,7 @@ from .. import config
 BRT = timezone(timedelta(hours=-3))
 CACHE_DIR = config.DATA_DIR / "rss"
 TTL = 600
-UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36 Placar/5.0"}
+UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36 Vyra/5.0"}
 
 # slug: (nome, url, domínio, só futebol?)
 FEEDS = {

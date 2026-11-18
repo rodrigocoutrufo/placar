@@ -1,4 +1,4 @@
-"""Placar — servidor da aplicação.
+"""Vyra — servidor da aplicação.
 
 Segue as boas práticas da documentação da API Futebol (api-futebol.com.br/documentacao/boas-praticas):
 
@@ -182,7 +182,7 @@ def _upstream(path: str, force: bool = False, essential: bool = False) -> tuple[
             return hit[1], hit[2]
         return 429, json.dumps({"message": "Orçamento diário da API Futebol esgotado; usando a reserva."}).encode()
     req = urllib.request.Request(UPSTREAM + path, headers={
-        "Authorization": f"Bearer {LIVE_KEY}", "Accept": "application/json", "User-Agent": "Placar/5.0"})
+        "Authorization": f"Bearer {LIVE_KEY}", "Accept": "application/json", "User-Agent": "Vyra/5.0"})
     status, body = 0, b""
     for wait in (0, 1, 2, 4):
         if wait:
@@ -272,7 +272,7 @@ def live_for_plan(ids) -> list:
             if o:
                 merged = {**o, **{k: m.get(k) for k in ("placar_mandante", "placar_visitante", "status", "periodo", "cronometro", "cronometro_label", "disputa_penalti")},
                           "campeonato": o.get("campeonato") or m["campeonato"], "fonte_placar": "espn"}
-                identity.canonicalize(merged, cid, _espn_teams)  # mesmos IDs de time do resto do Placar
+                identity.canonicalize(merged, cid, _espn_teams)  # mesmos IDs de time do resto da Vyra
                 _overlay[o["partida_id"]] = merged
                 out.append(merged)
             else:
@@ -1049,7 +1049,7 @@ def image_proxy(url: str):
     if hit and hit[0] > now:
         return 200, hit[1], hit[2]
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 Placar/2.0"})
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 Vyra/2.0"})
         with urllib.request.urlopen(req, timeout=10) as r:
             ctype = (r.headers.get("Content-Type") or "").split(";")[0].strip().lower()
             if r.geturl() and (urllib.parse.urlsplit(r.geturl()).hostname or "") not in IMG_HOSTS:
@@ -1103,7 +1103,7 @@ def _static_file(rel: str, roots=None):
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "Placar"
+    server_version = "Vyra"
     sys_version = ""
     timeout = 30
     protocol_version = "HTTP/1.1"
@@ -1360,7 +1360,7 @@ class Server(ThreadingHTTPServer):
             return
         super().handle_error(request, client_address)
     # No Windows, SO_REUSEADDR deixa dois servidores ouvirem a mesma porta (e o antigo continua respondendo).
-    # Lá a porta fica exclusiva: se já houver um Placar rodando, este avisa em vez de dividir a porta.
+    # Lá a porta fica exclusiva: se já houver uma Vyra rodando, este avisa em vez de dividir a porta.
     allow_reuse_address = os.name != "nt"
 
     def server_bind(self):
@@ -1376,7 +1376,7 @@ def main():
     if not LIVE_KEY and not ESPN_ON and not footballdata.TOKEN:
         raise SystemExit("Configure ao menos uma fonte: FUTEBOL_API_KEY, FOOTBALL_DATA_TOKEN ou ESPN_FALLBACK=1")
     host = os.environ.get("HOST", "0.0.0.0")
-    print(f"Placar rodando em http://localhost:{PORT}  (host {host})")
+    print(f"Vyra rodando em http://localhost:{PORT}  (host {host})")
     _, ids = plan()
     b = _budget()
     if ids:
@@ -1390,7 +1390,7 @@ def main():
     try:
         httpd = Server((host, PORT), Handler)
     except OSError:
-        raise SystemExit(f"\nA porta {PORT} já está em uso — provavelmente outro Placar ainda está aberto.\n"
+        raise SystemExit(f"\nA porta {PORT} já está em uso — provavelmente outra Vyra ainda está aberta.\n"
                          f"Feche a outra janela do servidor (Ctrl+C) ou rode em outra porta: python server.py {PORT + 1}")
 
     def stop(*_):  # a hospedagem envia SIGTERM ao reiniciar/publicar uma versão nova

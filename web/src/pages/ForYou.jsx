@@ -49,7 +49,7 @@ export default function ForYou() {
       <section className="fy-hero">
         <motion.small initial={{ opacity: 0 }} animate={{ opacity: 1 }}>Para você</motion.small>
         <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease }}>{h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'}.</motion.h1>
-        <p>{learning ? 'Siga seus times e abra os jogos que te interessam: o Placar aprende e monta esta página para você.' : nLive ? `${nLive} jogo${nLive > 1 ? 's' : ''} do seu interesse rolando agora.` : mine.length ? `${mine.length} jogos do seu interesse nos próximos dias.` : 'Nenhum jogo dos seus times nos próximos dias.'}</p>
+        <p>{learning ? 'Siga seus times e abra os jogos que te interessam: a Vyra aprende e monta esta página para você.' : nLive ? `${nLive} jogo${nLive > 1 ? 's' : ''} do seu interesse rolando agora.` : mine.length ? `${mine.length} jogos do seu interesse nos próximos dias.` : 'Nenhum jogo dos seus times nos próximos dias.'}</p>
         <div className="fy-chips">
           {favs.map((t) => <a key={t.time_id} href={`#/time/${t.time_id}`} className="fchip"><Crest t={t} size={18} />{t.nome_popular}</a>)}
           {Taste.top('c', 4).filter((x) => x.m && x.m.n).map((x) => <Link key={x.id} to={`/campeonato/${x.id}`} className="fchip">{x.m.n}</Link>)}

@@ -17,7 +17,7 @@ MAX_KEEP = 4000
 _labels: dict[str, dict] | None = None
 _lock = threading.Lock()
 
-SYSTEM = """Você classifica manchetes de portais esportivos brasileiros para o app Placar.
+SYSTEM = """Você classifica manchetes de portais esportivos brasileiros para o app Vyra.
 Para cada notícia, devolva:
 - esporte: "futebol", "basquete", "automobilismo" ou "outro";
 - categoria: "profissional_masculino", "feminino", "base" (sub-20, Copinha, juniores) ou "outro";

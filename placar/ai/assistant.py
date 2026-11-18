@@ -1,6 +1,6 @@
-"""'Pergunte ao Placar': assistente que responde sobre jogos, tabelas, chances, notícias, NBA e F1.
+"""'Pergunte à Vyra': assistente que responde sobre jogos, tabelas, chances, notícias, NBA e F1.
 
-O modelo não sabe os dados de hoje: ele chama ferramentas (tools) e o Placar responde com os próprios dados
+O modelo não sabe os dados de hoje: ele chama ferramentas (tools) e a Vyra responde com os próprios dados
 (as mesmas rotas do site). O servidor injeta as implementações em answer(); este módulo só define o
 contrato das ferramentas e o fluxo.
 """
@@ -11,10 +11,10 @@ from datetime import datetime
 from .. import config
 from . import client
 
-SYSTEM = """Você é o assistente do Placar, app brasileiro de futebol (com NBA e Fórmula 1).
+SYSTEM = """Você é o assistente da Vyra, app brasileiro de futebol (com NBA e Fórmula 1).
 Responda em português do Brasil, de forma direta e curta (até ~120 palavras, listas quando ajudar).
 Use as ferramentas para buscar os dados; nunca invente placares, datas, posições ou notícias. Se uma
-ferramenta não trouxer o dado, diga que o Placar não tem essa informação agora. Horários são de Brasília.
+ferramenta não trouxer o dado, diga que a Vyra não tem essa informação agora. Horários são de Brasília.
 Quando citar um jogo, inclua o placar ou o horário. Não responda sobre apostas nem sobre temas fora de esporte."""
 
 _INT = {"type": "integer"}
@@ -28,12 +28,12 @@ def _tool(name, description, props=None):
 
 
 TOOLS = [
-    _tool("campeonatos", "Lista os campeonatos de futebol do Placar com id, nome e rodada/fase atual."),
+    _tool("campeonatos", "Lista os campeonatos de futebol da Vyra com id, nome e rodada/fase atual."),
     _tool("jogos", "Jogos de futebol. campeonato_id=0 para todos; data no formato AAAA-MM-DD ou vazio para hoje.",
           {"campeonato_id": _INT, "data": _STR}),
     _tool("ao_vivo", "Jogos de futebol em andamento agora, com placar e minuto."),
     _tool("tabela", "Classificação de um campeonato de pontos corridos.", {"campeonato_id": _INT}),
-    _tool("chances", "Probabilidades do modelo do Placar de título, vagas e rebaixamento num campeonato.", {"campeonato_id": _INT}),
+    _tool("chances", "Probabilidades do modelo da Vyra de título, vagas e rebaixamento num campeonato.", {"campeonato_id": _INT}),
     _tool("partida", "Detalhes de uma partida (placar, gols, cartões, probabilidade, onde assistir).", {"partida_id": _INT}),
     _tool("buscar_time", "Procura um time pelo nome: campeonato, posição e próximos/últimos jogos.", {"nome": _STR}),
     _tool("noticias", "Manchetes recentes. busca: palavras (pode ser vazio); campeonato_id=0 para todas.", {"busca": _STR, "campeonato_id": _INT}),
@@ -78,9 +78,9 @@ def answer(question: str, history: list[dict], tools_impl: dict) -> dict:
 
 # ---------------------------------------------------------------- fluxo para modelos locais (pequenos)
 # Modelos pequenos se perdem no laço livre de ferramentas (raciocinam em voz alta e não chamam nada).
-# Fluxo fixo e mais rápido: 1) a IA escolhe as consultas num JSON com schema; 2) o Placar executa;
+# Fluxo fixo e mais rápido: 1) a IA escolhe as consultas num JSON com schema; 2) a Vyra executa;
 # 3) a IA escreve a resposta num JSON. Saída presa ao schema = sem divagação.
-PLAN_SYSTEM = """Você planeja consultas para responder perguntas sobre esporte no app Placar.
+PLAN_SYSTEM = """Você planeja consultas para responder perguntas sobre esporte no app Vyra.
 Escolha de 1 a 2 consultas da lista que trazem os dados necessários. Use os ids de campeonato da lista.
 Consultas:
 - campeonatos: lista de campeonatos

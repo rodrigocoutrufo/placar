@@ -26,7 +26,7 @@ from .. import config
 
 CACHE_DIR = config.DATA_DIR / "estadios"
 TTL, TTL_MISS = 30 * 86400, 86400
-UA = {"User-Agent": "Placar/1.0 (placar ao vivo; estadios)"}
+UA = {"User-Agent": "Vyra/1.0 (placar ao vivo; estadios)"}
 WIKI = "https://pt.wikipedia.org/w/api.php"
 WD = "https://www.wikidata.org/w/api.php"
 EMBED_KEY = os.environ.get("GOOGLE_MAPS_EMBED_KEY", "").strip()

@@ -1,4 +1,4 @@
-"""Base comum de NBA e F1: HTTP com cache, erros e conversões. Outros esportes do Placar: basquete (NBA, pela ESPN) e Fórmula 1 (Jolpica/Ergast + ESPN para a sessão ao vivo).
+"""Base comum de NBA e F1: HTTP com cache, erros e conversões. Outros esportes da Vyra: basquete (NBA, pela ESPN) e Fórmula 1 (Jolpica/Ergast + ESPN para a sessão ao vivo).
 
 Tudo normalizado em português, com cache em memória e uso do último dado bom se a fonte cair.
 Rotas (via server.py, em /api/esportes/...):

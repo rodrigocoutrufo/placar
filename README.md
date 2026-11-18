@@ -1,4 +1,4 @@
-# Placar
+# Vyra
 
 App de futebol em tempo real: jogos do dia, placares ao vivo, classificação, chaveamento,
 escalações em campo, estatísticas, elencos, artilharia e assistências.
@@ -171,12 +171,12 @@ da IA e os limites de cada fonte estão em **[ARCHITECTURE.md](ARCHITECTURE.md)*
 
 ## IA (grátis, com o Gemini)
 
-O Placar usa o **Gemini** (`gemini-4-hydrogen`), do Google, no plano grátis. Basta uma chave em
+A Vyra usa o **Gemini** (`gemini-4-hydrogen`), do Google, no plano grátis. Basta uma chave em
 https://aistudio.google.com/apikey colocada no `.env` como `GEMINI_API_KEY`. Recursos:
 
 - **Análise IA na partida:** prévia com palpite, leitura ao vivo e resumo do jogo;
 - **"Seu dia no futebol":** um resumo no início, a partir dos times e campeonatos que você acompanha;
-- **"Pergunte ao Placar":** um assistente que consulta tabela, jogos, chances, notícias, NBA e F1. Exige conta;
+- **"Pergunte à Vyra":** um assistente que consulta tabela, jogos, chances, notícias, NBA e F1. Exige conta;
 - **notícias:** a IA classifica cada manchete por campeonato, categoria e times.
 
 Proteções:
@@ -185,7 +185,7 @@ Proteções:
 - limite por pessoa;
 - tempo máximo por resposta.
 
-No plano grátis, o Google pode usar o que é enviado para melhorar os produtos dele. O Placar só envia dados
+No plano grátis, o Google pode usar o que é enviado para melhorar os produtos dele. A Vyra só envia dados
 públicos de futebol e a pergunta da pessoa.
 
 Outras opções no `.env`:

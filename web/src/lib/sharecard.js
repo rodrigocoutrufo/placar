@@ -154,7 +154,7 @@ export async function drawCard(canvas, p, camp, fmt = 'story') {
   ctx.fillStyle = '#19d36b'; roundRect(ctx, 90, fy - 34, 64, 64, 12); ctx.fill();
   ctx.strokeStyle = '#fff'; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(122, fy - 2, 17, 0, Math.PI * 2); ctx.stroke();
   ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(122, fy - 2, 6, 0, Math.PI * 2); ctx.fill();
-  ctx.font = 'italic 800 56px "Barlow Condensed"'; ctx.fillText('PLACAR', 172, fy);
+  ctx.fillStyle = '#fff'; ctx.font = 'italic 800 56px "Barlow Condensed"'; ctx.fillText('VYRA', 172, fy);
   ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.font = '500 26px "Inter"';
   const where = [d ? d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '', p.estadio && p.estadio.nome_popular].filter(Boolean).join(' · ');
   ctx.fillText(where.slice(0, 48), W - 90, fy);

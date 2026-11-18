@@ -1,4 +1,4 @@
-"""Motor de probabilidades do Placar.
+"""Motor de probabilidades da Vyra.
 
 Modelo de Poisson (o mesmo princípio usado por casas de estatística esportiva):
 - força de ataque e de defesa de cada time = gols por jogo comparados com a média da liga,

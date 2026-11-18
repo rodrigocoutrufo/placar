@@ -1,9 +1,9 @@
-"""Rotas /api/ia/*: ligam a camada de IA (placar/ai) aos dados do próprio Placar.
+"""Rotas /api/ia/*: ligam a camada de IA (placar/ai) aos dados da própria Vyra.
 
   GET  /api/ia/status            a IA está ligada? (o site esconde os recursos de IA quando não está)
   GET  /api/ia/partida/{id}      análise da partida (prévia, ao vivo ou resumo)
   GET  /api/ia/para-voce         resumo do dia a partir dos interesses (?times=A,B&campeonatos=10,7)
-  POST /api/ia/perguntar         "Pergunte ao Placar" (só com conta: controla o custo por pessoa)
+  POST /api/ia/perguntar         "Pergunte à Vyra" (só com conta: controla o custo por pessoa)
 """
 
 import json
@@ -183,7 +183,7 @@ def tools_impl() -> dict:
                 if campeonato_id or not want or m.get("data_realizacao") == want:
                     out.append(_line(m))
         # uma linha por jogo: bem menos texto para a IA ler (na IA local, ler é o que mais demora)
-        return out[:40] or {"aviso": f"Nenhum jogo em {want or day} na rodada/fase atual dos campeonatos do Placar."}
+        return out[:40] or {"aviso": f"Nenhum jogo em {want or day} na rodada/fase atual dos campeonatos da Vyra."}
 
     def ao_vivo():
         return [_line(m) for m in (_get("/ao-vivo") or [])] or {"aviso": "Nenhum jogo de futebol rolando agora."}
@@ -209,7 +209,7 @@ def tools_impl() -> dict:
     def buscar_time(nome: str):
         hit = _find_team(nome)
         if not hit:
-            return {"aviso": f"Não achei '{nome}' nas tabelas do Placar."}
+            return {"aviso": f"Não achei '{nome}' nas tabelas da Vyra."}
         _, c, r = hit
         games = [_m(m) for m in _current_matches(c) if r["time"]["time_id"] in (m["time_mandante"]["time_id"], m["time_visitante"]["time_id"])]
         return {"time": r["time"]["nome_popular"], "time_id": r["time"]["time_id"], "campeonato": c.get("nome_popular"),
@@ -312,7 +312,7 @@ def handle_get(path: str, query: dict, ip: str):
         teams = [t.strip() for t in (query.get("times") or "").split(",") if t.strip()][:8]
         comps = [int(c) for c in (query.get("campeonatos") or "").split(",") if c.strip().isdigit()][:6]
         if not teams and not comps:
-            return 400, {"message": "Siga times ou abra campeonatos para o Placar conhecer seus interesses."}
+            return 400, {"message": "Siga times ou abra campeonatos para a Vyra conhecer seus interesses."}
         try:
             interests, matches, news = foryou_context(teams, comps)
             if not matches and not news:
@@ -330,7 +330,7 @@ def handle_post(path: str, body: dict, ctx: dict):
         return 503, {"message": "IA desligada neste servidor.", "ativo": False}
     user, _ = auth.current(ctx)
     if not user:
-        return 401, {"message": "Entre na sua conta para usar o assistente do Placar."}
+        return 401, {"message": "Entre na sua conta para usar o assistente da Vyra."}
     if not auth.LIMIT.allow(f"ask:{user['id']}", 40, 86400) or not auth.LIMIT.allow(f"askm:{user['id']}", 6, 60):
         return 429, {"message": "Você fez muitas perguntas por agora. Tente mais tarde."}
     q = body.get("pergunta")

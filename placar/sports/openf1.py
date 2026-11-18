@@ -1,5 +1,5 @@
 """Análise da corrida pela OpenF1 (https://openf1.org): dados oficiais de cronometragem da F1, grátis e sem chave
-para sessões encerradas (dados ao vivo são pagos; o ao vivo do Placar continua vindo da ESPN).
+para sessões encerradas (dados ao vivo são pagos; o ao vivo da Vyra continua vindo da ESPN).
 
 O que entra:
   pilotos com foto oficial e cor da equipe, estratégia de pneus (stints), pit stops, posição volta a volta,

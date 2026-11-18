@@ -1,4 +1,4 @@
-"""Contas do Placar: cadastro, login (usuário ou e-mail + senha, ou Google), sessões e segurança.
+"""Contas da Vyra: cadastro, login (usuário ou e-mail + senha, ou Google), sessões e segurança.
 
 Só biblioteca padrão:
 - SQLite (DATA_DIR/contas.db) para usuários, sessões e códigos de uso único;
@@ -282,8 +282,8 @@ def _use_token(tok: str, kind: str):
 def send_verification(u, ctx):
     tok = _new_token(u["id"], "verify", 48 * 3600)
     link = f"{base_url(ctx)}/api/auth/verificar?token={tok}"
-    send_mail(u["email"], "Confirme seu e-mail no Placar",
-              f"Olá, {u['name'] or u['username']}!\n\nConfirme seu e-mail para proteger sua conta no Placar:\n{link}\n\n"
+    send_mail(u["email"], "Confirme seu e-mail na Vyra",
+              f"Olá, {u['name'] or u['username']}!\n\nConfirme seu e-mail para proteger sua conta na Vyra:\n{link}\n\n"
               "O link vale por 48 horas. Se você não criou esta conta, ignore esta mensagem.")
 
 
@@ -481,7 +481,7 @@ def forgot(body, ctx):
     u = q("SELECT * FROM users WHERE email=?", (email,), one=True) if EMAIL_RX.match(email) else None
     if u and LIMIT.allow(f"forgot:{email}", 3, 3600):
         tok = _new_token(u["id"], "reset", 3600)
-        send_mail(u["email"], "Redefinir sua senha do Placar",
+        send_mail(u["email"], "Redefinir sua senha da Vyra",
                   f"Recebemos um pedido para redefinir a senha da conta {u['username']}.\n\n"
                   f"Crie uma senha nova por este link (vale por 1 hora):\n{base_url(ctx)}/#/redefinir?token={tok}\n\n"
                   "Se não foi você, ignore este e-mail: sua senha continua a mesma.")

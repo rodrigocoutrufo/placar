@@ -46,13 +46,13 @@ export default function Assistant() {
 
   return (
     <>
-      <motion.button className="ask-fab" onClick={() => setOpen((o) => !o)} whileHover={{ y: -2 }} whileTap={{ scale: 0.96 }} aria-label="Pergunte ao Placar">
-        {Icon.chat}<span>{open ? 'Fechar' : 'Pergunte ao Placar'}</span>
+      <motion.button className="ask-fab" onClick={() => setOpen((o) => !o)} whileHover={{ y: -2 }} whileTap={{ scale: 0.96 }} aria-label="Pergunte à Vyra">
+        {Icon.chat}<span>{open ? 'Fechar' : 'Pergunte à Vyra'}</span>
       </motion.button>
       <AnimatePresence>
         {open && (
           <motion.aside className="ask" initial={{ opacity: 0, y: 30, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.98 }} transition={{ duration: 0.35, ease }}>
-            <header><b>Pergunte ao Placar</b><small>Respostas com os dados do site · {st.provedor === 'gemini' ? 'Gemini' : st.local ? 'IA local' : 'Claude'}</small></header>
+            <header><b>Pergunte à Vyra</b><small>Respostas com os dados do site · {st.provedor === 'gemini' ? 'Gemini' : st.local ? 'IA local' : 'Claude'}</small></header>
             <div className="ask-body">
               {!hist.length && (
                 <div className="ask-sugs">{SUGS.map((s) => <button key={s} onClick={() => send(s)}>{s}</button>)}</div>

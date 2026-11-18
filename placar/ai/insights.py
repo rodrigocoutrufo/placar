@@ -1,6 +1,6 @@
 """Análise da partida pela IA: antes do jogo (prévia e palpite), ao vivo (o que está acontecendo) e depois (resumo).
 
-Recebe só dados que o Placar já tem e devolve texto curto em JSON. Para funcionar bem também com modelos
+Recebe só dados que a Vyra já tem e devolve texto curto em JSON. Para funcionar bem também com modelos
 pequenos (IA local), o contexto chega "mastigado": fatos prontos em português (posição, pontos, forma,
 probabilidades) e só a instrução do momento do jogo. A resposta fica em cache até o jogo mudar.
 """
@@ -9,7 +9,7 @@ import re
 
 from . import client
 
-BASE = """Você é o analista do Placar, um app brasileiro de futebol. Escreva em português do Brasil, como um bom
+BASE = """Você é o analista da Vyra, um app brasileiro de futebol. Escreva em português do Brasil, como um bom
 jornalista esportivo: frases curtas, concretas, sem clichês e sem exageros. Use só os FATOS fornecidos.
 Nunca invente lesões, escalações, declarações, posições ou números que não estejam nos fatos. Não diga que
 um time "lidera" a tabela se o fato não disser que ele está em 1º lugar.
@@ -58,7 +58,7 @@ def facts(ctx: dict) -> list[str]:
     p = (ctx.get("probabilidades_modelo") or {})
     cur = p.get("ao_vivo") or p.get("pre")
     if cur:
-        out.append(f"Modelo do Placar{' (ao vivo)' if p.get('ao_vivo') else ''}: {cur['casa']}% vitória do {h.get('nome')}, {cur['empate']}% empate, "
+        out.append(f"Modelo da Vyra{' (ao vivo)' if p.get('ao_vivo') else ''}: {cur['casa']}% vitória do {h.get('nome')}, {cur['empate']}% empate, "
                    f"{cur['fora']}% vitória do {a.get('nome')}.")
     if p.get("gols_esperados"):
         g = p["gols_esperados"]
@@ -79,7 +79,7 @@ def facts(ctx: dict) -> list[str]:
 
 
 def likely_score(ctx: dict):
-    """Placar mais provável pelo modelo de Poisson do Placar (gols esperados), ou o placar atual somado ao resto do jogo."""
+    """Placar mais provável pelo modelo de Poisson da Vyra (gols esperados), ou o placar atual somado ao resto do jogo."""
     g = (ctx.get("probabilidades_modelo") or {}).get("gols_esperados")
     if not g:
         return None
@@ -113,7 +113,7 @@ def match_insight(ctx: dict) -> dict:
     fs = facts(ctx)
     likely = likely_score(ctx) if status != "finalizado" else None
     if likely:
-        fs.append(f"Placar mais provável pelo modelo do Placar: {ctx['mandante']['nome']} {likely[0]} x {likely[1]} {ctx['visitante']['nome']}.")
+        fs.append(f"Placar mais provável pelo modelo da Vyra: {ctx['mandante']['nome']} {likely[0]} x {likely[1]} {ctx['visitante']['nome']}.")
     data = client.ask_json(system, "FATOS:\n- " + "\n- ".join(fs), SCHEMA, effort="medium", ttl=ttl_for(status))
     # modelos pequenos às vezes numeram os itens ("Fato 1: ...", "1: ..."): fica só o texto
     data["pontos"] = [_fix_claims(re.sub(r"^\s*((fato|ponto)\s*)?\d+\s*[:.)-]\s*", "", p, flags=re.I), ctx) for p in data.get("pontos", []) if p][:4]

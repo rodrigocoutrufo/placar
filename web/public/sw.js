@@ -1,9 +1,9 @@
-/* Placar — service worker.
+/* Vyra — service worker.
  * - app (HTML/CSS/JS): rede primeiro, com cópia para abrir sem internet;
  * - /api: rede primeiro; sem conexão, devolve o último dado salvo.
  * Imagens de outros domínios (escudos, fotos) ficam com o cache normal do navegador: a política de
  * segurança (CSP connect-src 'self') não deixa o service worker buscá-las. */
-const VERSION = 'placar-v30';
+const VERSION = 'placar-v31'; // prefixo antigo mantido: só o número sobe
 const APP = `${VERSION}-app`;
 const DATA = `${VERSION}-data`;
 const MAX_DATA = 150;

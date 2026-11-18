@@ -1,4 +1,4 @@
-"""Outros esportes do Placar: rotas em /api/esportes/... (ver nba.py e f1.py)."""
+"""Outros esportes da Vyra: rotas em /api/esportes/... (ver nba.py e f1.py)."""
 
 import json
 import re

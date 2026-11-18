@@ -1,4 +1,4 @@
-# Placar — imagem de produção
+# Vyra — imagem de produção
 # 1) compila o site (React + Vite)
 FROM node:22-slim AS web
 WORKDIR /web
@@ -17,7 +17,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 RUN useradd --create-home --uid 10001 placar && mkdir -p /data && chown placar:placar /data
-# dependência opcional (camada de IA); o resto do Placar usa só a biblioteca padrão
+# dependência opcional (camada de IA); o resto da Vyra usa só a biblioteca padrão
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 COPY --chown=placar:placar server.py ./

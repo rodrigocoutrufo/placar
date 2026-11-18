@@ -1,7 +1,7 @@
 """Provedor de IA local e gratuito: Ollama (https://ollama.com), rodando no próprio computador.
 
 Fala com o servidor do Ollama por HTTP (biblioteca padrão, sem SDK):
-  POST /api/chat  com "format" = JSON Schema (resposta estruturada) ou "tools" (o modelo pede dados ao Placar).
+  POST /api/chat  com "format" = JSON Schema (resposta estruturada) ou "tools" (o modelo pede dados à Vyra).
 Uma chamada por vez (num PC sem placa de vídeo, duas ao mesmo tempo só deixam as duas lentas).
 
 Variáveis:
@@ -133,7 +133,7 @@ def ask_json(system: str, user: str, schema: dict, stats: dict) -> dict:
 
 
 def run_tools(system: str, messages: list, tools: list, execute, stats: dict, max_steps: int = 6) -> tuple[str, list]:
-    """Laço de ferramentas no formato do Ollama: o modelo pede tool_calls, o Placar responde com role "tool"."""
+    """Laço de ferramentas no formato do Ollama: o modelo pede tool_calls, a Vyra responde com role "tool"."""
     otools = [{"type": "function", "function": {"name": t["name"], "description": t["description"], "parameters": t["input_schema"]}} for t in tools]
     msgs = [{"role": "system", "content": _no_think(system)}] + [{"role": m["role"], "content": m["content"]} for m in messages]
     used = []

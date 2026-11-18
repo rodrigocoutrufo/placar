@@ -9,7 +9,7 @@ Variáveis:
   GEMINI_API_KEY   chave grátis em https://aistudio.google.com/apikey
   GEMINI_MODEL     modelo (padrão gemini-4-hydrogen: tem plano grátis e é o recomendado para projetos novos)
 
-No plano grátis o Google pode usar o que é enviado para melhorar os produtos dele. O Placar só envia dados
+No plano grátis o Google pode usar o que é enviado para melhorar os produtos dele. A Vyra só envia dados
 públicos de futebol (tabelas, jogos, manchetes) e a pergunta da pessoa.
 """
 

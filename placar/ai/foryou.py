@@ -1,6 +1,6 @@
 """'Para você' com IA: um resumo curto do dia a partir dos interesses da pessoa.
 
-O algoritmo do Placar (public/foryou.js) aprende os interesses no aparelho (times, campeonatos, esportes, com
+O algoritmo da Vyra (public/foryou.js) aprende os interesses no aparelho (times, campeonatos, esportes, com
 pesos que decaem no tempo). O navegador manda os principais; o servidor junta os jogos e manchetes ligados a
 eles e a IA escreve o resumo, em ordem de importância. Cache por combinação de interesses, por 1 hora.
 """
@@ -9,7 +9,7 @@ import json
 
 from . import client
 
-SYSTEM = """Você escreve o "Seu dia no futebol", um resumo pessoal do app Placar. Português do Brasil, frases curtas,
+SYSTEM = """Você escreve o "Seu dia no futebol", um resumo pessoal do app Vyra. Português do Brasil, frases curtas,
 tom de amigo que entende de futebol. Use só os dados recebidos (jogos e manchetes ligados aos interesses da
 pessoa). Ordene do mais importante para o menos: jogo ao vivo ou de hoje de um time que a pessoa segue,
 resultados recentes, jogos dos próximos dias, notícias. Não repita a mesma informação. Não invente.

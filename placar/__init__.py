@@ -1,4 +1,4 @@
-"""Placar: futebol, NBA e F1 ao vivo.
+"""Vyra: futebol, NBA e F1 ao vivo.
 
 Pacotes:
   sources/  adaptadores das fontes de dados (ESPN, football-data, Transfermarkt, portais por RSS)

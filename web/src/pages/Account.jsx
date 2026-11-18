@@ -178,7 +178,7 @@ export function Auth() {
         <ul><li>Senha guardada com criptografia (scrypt), nunca em texto</li><li>Bloqueio automático após tentativas erradas</li><li>Verificação contra robôs em cada acesso</li><li>Você pode sair de todos os aparelhos ou excluir a conta quando quiser</li></ul>
       </motion.div>
     )}>
-      <div className="auth-head"><Mark /><h1>{signup ? 'Crie sua conta' : 'Entre no Placar'}</h1><p>{signup ? 'Salve seus times, palpites do bolão e recordes dos minijogos em qualquer aparelho.' : 'Seus favoritos e palpites em todos os seus aparelhos.'}</p></div>
+      <div className="auth-head"><Mark /><h1>{signup ? 'Crie sua conta' : 'Entre na Vyra'}</h1><p>{signup ? 'Salve seus times, palpites do bolão e recordes dos minijogos em qualquer aparelho.' : 'Seus favoritos e palpites em todos os seus aparelhos.'}</p></div>
       <div className="seg auth-seg">
         <Link to={`/entrar${q}`} className={signup ? '' : 'on'} replace>Entrar{!signup && <motion.span layoutId="seg-auth" className="seg-ind" />}</Link>
         <Link to={`/cadastro${q}`} className={signup ? 'on' : ''} replace>Criar conta{signup && <motion.span layoutId="seg-auth" className="seg-ind" />}</Link>
@@ -360,7 +360,7 @@ export function AccountPage() {
             </form></Panel>
         </div>
         <aside className="col side">
-          <Panel><Head right={<button className="phead-more" onClick={() => { if (window.confirm('Limpar o que o Placar aprendeu sobre seus interesses? Seus times seguidos continuam.')) Taste.reset(); }}>Limpar</button>}>Seus interesses</Head>
+          <Panel><Head right={<button className="phead-more" onClick={() => { if (window.confirm('Limpar o que a Vyra aprendeu sobre seus interesses? Seus times seguidos continuam.')) Taste.reset(); }}>Limpar</button>}>Seus interesses</Head>
             <div className="pad fy-chips">{Taste.top('t', 12).filter((x) => x.m && x.m.n).map((x) => <span key={x.id} className="fchip">{x.m.e && <img src={x.m.e} alt="" width="16" />}{x.m.n}</span>)}
               {Taste.top('c', 6).filter((x) => x.m && x.m.n).map((x) => <Link key={x.id} className="fchip" to={`/campeonato/${x.id}`}>{x.m.n}</Link>)}</div></Panel>
         </aside>

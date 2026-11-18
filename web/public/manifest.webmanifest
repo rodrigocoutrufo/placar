@@ -1,7 +1,7 @@
 {
-  "name": "Placar — futebol ao vivo",
-  "short_name": "Placar",
-  "description": "Placares ao vivo, tabelas, escalações, notícias e estatísticas do futebol brasileiro e europeu.",
+  "name": "Vyra — futebol, NBA e F1 ao vivo",
+  "short_name": "Vyra",
+  "description": "Placares ao vivo, tabelas, escalações, notícias e estatísticas de futebol, NBA e Fórmula 1.",
   "lang": "pt-BR",
   "start_url": "/?source=pwa",
   "scope": "/",

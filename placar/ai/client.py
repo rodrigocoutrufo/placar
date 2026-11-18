@@ -1,11 +1,11 @@
-"""Cliente de IA do Placar: um só lugar para provedor, modelo, limite, cache e erros.
+"""Cliente de IA da Vyra: um só lugar para provedor, modelo, limite, cache e erros.
 
 Três provedores, mesma interface (ask_json e run_tools):
   gemini     nuvem, plano grátis (ai/gemini.py) — escolhido quando há GEMINI_API_KEY.
   anthropic  Claude pela API (pago por uso), com fallback automático quando o modelo recusa.
   ollama     local, grátis (ai/ollama.py) — só com AI_PROVIDER=ollama: pesa no computador.
 
-Sem provedor disponível (sem chave, ou AI_ENABLED=0), available() devolve False e o resto do Placar
+Sem provedor disponível (sem chave, ou AI_ENABLED=0), available() devolve False e o resto da Vyra
 segue com as regras normais (heurísticas). Nada quebra.
 
 Variáveis:
@@ -200,7 +200,7 @@ def ask_json(system: str, user: str, schema: dict, *, effort: str = "low", ttl: 
 
 
 def run_tools(system: str, messages: list, tools: list, execute, *, effort: str = "medium", max_steps: int = 6) -> tuple[str, list]:
-    """Laço de ferramentas: o modelo pede dados (tools), o Placar busca (execute) e devolve até a resposta final.
+    """Laço de ferramentas: o modelo pede dados (tools), a Vyra busca (execute) e devolve até a resposta final.
     execute(nome, entrada) -> str (JSON). Devolve (texto final, ferramentas usadas)."""
     if provider() == "ollama":
         return _local(lambda: ollama.run_tools(system, messages, tools, execute, stats, max_steps))

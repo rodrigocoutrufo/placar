@@ -3,7 +3,7 @@
 O mesmo clube tem um ID em cada fonte: na Série B, o Novorizontino é 51 na API Futebol e 900018127 na
 ESPN. Com dois IDs, o mesmo time aparecia duas vezes em "Seguindo", o jogo oficial não casava com o placar
 ao vivo e a página do time gastava o plano diário. Aqui as respostas da API Futebol passam a usar o ID
-canônico (o da ESPN, que o resto do Placar já usa), guardando o original em time_id_api_futebol.
+canônico (o da ESPN, que o resto da Vyra já usa), guardando o original em time_id_api_futebol.
 """
 
 import re

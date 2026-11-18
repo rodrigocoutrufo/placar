@@ -148,7 +148,7 @@ function AIInsight({ p }) {
           {(a.pontos || []).length > 0 && <ul className="ai-pts">{a.pontos.map((x, i) => <motion.li key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.08 }}>{x}</motion.li>)}</ul>}
           <div className="ai-tip"><span className="tag">{q.data.status === 'finalizado' ? 'Final' : 'Palpite'}</span><b>{p.time_mandante.sigla} {pal.mandante ?? '–'} × {pal.visitante ?? '–'} {p.time_visitante.sigla}</b><small>{pal.comentario}</small></div>
           {a.fique_de_olho && <p className="small"><b>Fique de olho:</b> {a.fique_de_olho}</p>}
-          <p className="foot">Texto gerado por IA ({st.provedor === 'gemini' ? 'Gemini' : 'Claude'}) só com os dados do Placar. Pode errar.</p>
+          <p className="foot">Texto gerado por IA ({st.provedor === 'gemini' ? 'Gemini' : 'Claude'}) só com os dados da Vyra. Pode errar.</p>
         </div>
       </Panel>
     </Reveal>
@@ -165,7 +165,7 @@ function Prob({ p }) {
   return (
     <Reveal>
       <Panel>
-        <Head sub={pr.confianca === 'baixa' ? 'estimativa com poucos dados' : 'modelo do Placar'}>{liveP ? <><LiveDot /> Probabilidade ao vivo</> : p.status === 'finalizado' ? 'Probabilidade antes do jogo' : 'Probabilidade de vitória'}</Head>
+        <Head sub={pr.confianca === 'baixa' ? 'estimativa com poucos dados' : 'modelo da Vyra'}>{liveP ? <><LiveDot /> Probabilidade ao vivo</> : p.status === 'finalizado' ? 'Probabilidade antes do jogo' : 'Probabilidade de vitória'}</Head>
         <div className="prob">
           {parts.map(([v, c, t], i) => (
             <div key={i} className="prob-c">{t ? <Crest t={t} size={30} /> : <span className="x">EMPATE</span>}<b><CountUp value={v} decimals={1} />%</b></div>

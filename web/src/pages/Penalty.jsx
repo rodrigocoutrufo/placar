@@ -233,7 +233,7 @@ function Shootout({ me, cpu, level, sqMe, sqCpu, again, teams }) {
               <radialGradient id="light" cx=".5" cy="0" r=".9"><stop offset="0" stopColor="rgba(255,255,255,.25)" /><stop offset="1" stopColor="rgba(255,255,255,0)" /></radialGradient>
             </defs>
             <rect width="400" height="62" fill="#0e1a24" /><rect width="400" height="46" fill="url(#crowd)" />
-            <rect y="46" width="400" height="14" fill="#0b0c0e" /><text x="200" y="56.5" textAnchor="middle" className="pen-ad">PLACAR · PLACAR · PLACAR · PLACAR · PLACAR</text>
+            <rect y="46" width="400" height="14" fill="#0b0c0e" /><text x="200" y="56.5" textAnchor="middle" className="pen-ad">VYRA · VYRA · VYRA · VYRA · VYRA · VYRA · VYRA</text>
             <rect y="60" width="400" height="240" fill="url(#grass)" />
             {[0, 1, 2, 3, 4, 5].map((i) => <rect key={i} y={60 + i * 40} width="400" height="20" fill="rgba(255,255,255,.035)" />)}
             <rect width="400" height="300" fill="url(#light)" />
