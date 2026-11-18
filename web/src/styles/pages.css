@@ -474,3 +474,42 @@ a.drv:hover b { color: var(--hl); }
   .radio-row { grid-template-columns: 1fr; }
   .tw:has(.tw-face) { grid-template-columns: 34px 4px 34px minmax(0, 1fr) 54px; } .tw-face { width: 34px; height: 34px; }
 }
+
+/* ---------- card de placar para compartilhar ---------- */
+.sb-share { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border: 1px solid rgba(255, 255, 255, .25); border-radius: 999px; background: rgba(0, 0, 0, .3); color: #fff; font: 700 13px/1 var(--fc); text-transform: uppercase; letter-spacing: .06em; cursor: pointer; }
+.sb-share:hover { border-color: var(--acc); color: var(--acc); }
+.sb-share .ico { width: 15px; height: 15px; }
+.sb-info { align-items: center; flex-wrap: wrap; }
+.share-back { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 16px; background: rgba(4, 5, 7, .78); backdrop-filter: blur(6px); }
+.share-box { width: min(860px, 100%); max-height: calc(100dvh - 32px); overflow: auto; background: var(--pan); color: var(--ink); border: 1px solid var(--rule2); border-radius: 10px; box-shadow: 0 30px 80px rgba(0, 0, 0, .5); }
+.share-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--rule); font: 800 20px/1 var(--fc); text-transform: uppercase; letter-spacing: .03em; }
+.share-x { width: 34px; height: 34px; border: 0; border-radius: 50%; background: var(--pan2); color: var(--ink); font-size: 24px; line-height: 1; cursor: pointer; }
+.share-x:hover { background: var(--pan3); }
+.share-body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 22px; padding: 20px; align-items: start; }
+.share-prev { position: relative; justify-self: center; width: 100%; max-width: 360px; border-radius: 8px; overflow: hidden; background: #0b0c0e; box-shadow: 0 12px 40px rgba(0, 0, 0, .35); }
+.share-prev.f-story { max-width: 300px; }
+.share-prev canvas { display: block; width: 100%; height: auto; }
+.share-load { position: absolute; inset: 0; background: linear-gradient(100deg, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, .08) 50%, rgba(255, 255, 255, 0) 70%) #0b0c0e; background-size: 200% 100%; animation: share-shine 1.1s linear infinite; }
+@keyframes share-shine { to { background-position: -200% 0; } }
+.share-side { display: flex; flex-direction: column; gap: 18px; }
+.share-fmts { display: flex; flex-direction: column; gap: 6px; }
+.share-fmts button { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 11px 14px; border: 1px solid var(--rule2); border-radius: 6px; background: transparent; color: var(--ink); text-align: left; cursor: pointer; }
+.share-fmts button > :not(.share-fmt-bg) { position: relative; z-index: 1; }
+.share-fmts button b { font: 800 18px/1 var(--fc); text-transform: uppercase; letter-spacing: .03em; }
+.share-fmts button small { font-size: 12px; color: var(--mute); }
+.share-fmts button.on { border-color: var(--hl); }
+.share-fmts button.on small { color: inherit; opacity: .8; }
+.share-fmts .share-fmt-bg { position: absolute; inset: 0; z-index: 0; border-radius: 5px; background: color-mix(in srgb, var(--hl) 14%, transparent); }
+.share-acts { display: flex; flex-direction: column; gap: 8px; }
+.share-acts .btn { justify-content: center; height: 44px; cursor: pointer; color: var(--ink); }
+.share-acts .btn.primary { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); }
+.share-acts .btn.primary:hover { filter: brightness(1.08); color: var(--acc-ink); }
+.share-acts .btn:disabled { opacity: .5; cursor: wait; }
+.share-msg { margin: 0; font-size: 13px; color: var(--mute); }
+@media (max-width: 720px) {
+  .share-body { grid-template-columns: 1fr; }
+  .share-prev, .share-prev.f-story { max-width: 230px; }
+  .share-fmts { flex-direction: row; }
+  .share-fmts button { flex: 1; padding: 9px 10px; }
+  .share-fmts button small { display: none; }
+}

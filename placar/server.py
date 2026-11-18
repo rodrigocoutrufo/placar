@@ -1014,6 +1014,49 @@ _hits: dict[tuple[str, str], list[float]] = {}
 _hits_lock = threading.Lock()
 
 
+# ---------------------------------------------------------------- proxy de imagens (escudos e logos)
+IMG_HOSTS = ("a.espncdn.com", "crests.football-data.org", "cdn.api-futebol.com.br", "media.formula1.com", "flagcdn.com",
+             "upload.wikimedia.org", "img.a.transfermarkt.technology", "tmssl.akamaized.net")
+IMG_MAX = 2_000_000
+_img_cache: dict[str, tuple[float, bytes, str]] = {}
+_img_lock = threading.Lock()
+
+
+def image_proxy(url: str):
+    """Baixa uma imagem de um dos sites de escudos permitidos (e só deles) e devolve (status, bytes, tipo).
+    Não segue para outros domínios: evita que o servidor vire um proxy aberto."""
+    try:
+        u = urllib.parse.urlsplit(url)
+    except ValueError:
+        return 400, b"", ""
+    if u.scheme != "https" or (u.hostname or "") not in IMG_HOSTS:
+        return 400, b"", ""
+    now = time.time()
+    with _img_lock:
+        hit = _img_cache.get(url)
+    if hit and hit[0] > now:
+        return 200, hit[1], hit[2]
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 Placar/2.0"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            ctype = (r.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+            if r.geturl() and (urllib.parse.urlsplit(r.geturl()).hostname or "") not in IMG_HOSTS:
+                return 400, b"", ""
+            if not ctype.startswith("image/") or ctype == "image/svg+xml":  # SVG pode carregar script: fica de fora
+                return 415, b"", ""
+            body = r.read(IMG_MAX + 1)
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError):
+        return 502, b"", ""
+    if len(body) > IMG_MAX:
+        return 413, b"", ""
+    with _img_lock:
+        _img_cache[url] = (now + 7 * 86400, body, ctype)
+        if len(_img_cache) > 600:
+            for k in sorted(_img_cache, key=lambda k: _img_cache[k][0])[:200]:
+                _img_cache.pop(k, None)
+    return 200, body, ctype
+
+
 def _allow(ip: str, kind: str) -> bool:
     limit, window = RATE[kind]
     now = time.time()
@@ -1200,6 +1243,13 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(403, b'{"message":"Acesso restrito"}', "server")
         if path == "/stream":
             return self._stream()
+        if path == "/img":  # escudos e logos de outros sites servidos daqui (o card de compartilhar precisa da mesma origem)
+            if not _allow(ip, "api"):
+                return self._json(429, b'{"message":"Muitas requisi\\u00e7\\u00f5es."}', "server")
+            st, body, ctype = image_proxy(query.get("u", ""))
+            if st != 200:
+                return self._json(st, b'{"message":"Imagem indispon\\u00edvel"}', "server")
+            return self._send(200, body, ctype, "public, max-age=604800")
         if AUTH_PATH.match(path):
             return self._auth("GET", path, parsed)
         if path.startswith("/ia/"):  # camada de IA (ai_routes.py)
