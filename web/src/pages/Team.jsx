@@ -8,6 +8,7 @@ import { Taste, isFav, toggleFav, useStoreVersion } from '../lib/store.js';
 import { flattenTable, isLeague, isLive, parseDate, fmtTime, liveLabel, kitColor, luminance, norm, faseMatches, timeAgo } from '../lib/format.js';
 import { mvNumber, regTeam } from '../lib/registry.js';
 import { Panel, Head, Skel, Empty, ErrorBox, Tabs, Stagger, Item, Crest, CompLogo, CountUp, LiveDot, Icon, ease } from '../components/ui.jsx';
+import { StadiumPanel } from '../components/Stadium.jsx';
 import { MatchRow, Standings, RankList } from '../components/match.jsx';
 
 const CAT_ORDER = ['Mundial', 'Continental', 'Liga nacional', 'Copa nacional', 'Estadual', 'Outros'];
@@ -296,7 +297,7 @@ function Club({ id, team }) {
     <div className="grid-main">
       <div className="col">
         <Panel><Head>Elenco em números</Head><div className="kpi-grid big">{kpis.map(([k, v]) => <div key={k}><b>{v}</b><span>{k}</span></div>)}</div></Panel>
-        {d.estadio && <Panel className="stadium"><span className="st-ico">🏟</span><div><small>Estádio</small><b>{d.estadio}</b>{d.capacidade && <small>Capacidade: {d.capacidade}</small>}</div></Panel>}
+        {d.estadio && <StadiumPanel name={d.estadio} capacity={d.capacidade && `Capacidade: ${d.capacidade}`} team={team} />}
         {top.length > 0 && (
           <Panel><Head right={<Link className="phead-more" to={`/time/${id}/elenco`}>Elenco completo</Link>}>Mais valiosos</Head>
             <Stagger>{top.map((p, i) => <Item key={p.nome} className="rank-row"><span className="n">{i + 1}</span>{p.foto ? <img className="face" src={p.foto} alt="" /> : <span />}<span className="who"><b>{p.nome}</b><small>{p.posicao}{p.idade ? ` · ${p.idade} anos` : ''}</small></span><span /><span className="v" style={{ fontSize: 17 }}>{p.valor_mercado}</span></Item>)}</Stagger></Panel>

@@ -513,3 +513,55 @@ a.drv:hover b { color: var(--hl); }
   .share-fmts button { flex: 1; padding: 9px 10px; }
   .share-fmts button small { display: none; }
 }
+
+/* ---------- estádio: vista 3D, foto e Street View ---------- */
+.stadium-x { overflow: hidden; }
+.stx-head { display: flex; align-items: center; gap: 14px; padding: 16px 18px; flex-wrap: wrap; }
+.stx-head > div:not(.stx-tabs) { display: grid; flex: 1; min-width: 180px; }
+.stx-head small { color: var(--mute); font-size: 12.5px; }
+.stx-head b { font: 800 26px/1.05 var(--fc); text-transform: uppercase; }
+.stx-tabs { display: flex; gap: 4px; padding: 3px; border-radius: 8px; background: var(--pan2); }
+.stx-tabs button { position: relative; padding: 8px 12px; border: 0; background: none; color: var(--mute); font: 700 14px/1 var(--fc); text-transform: uppercase; letter-spacing: .04em; cursor: pointer; }
+.stx-tabs button span { position: relative; z-index: 1; }
+.stx-tabs button.on { color: var(--ink); }
+.stx-tab-bg { position: absolute; inset: 0; border-radius: 6px; background: var(--pan); box-shadow: 0 1px 4px rgba(0, 0, 0, .18); }
+.stx-view { position: relative; height: 440px; background: #07080a; }
+.stx-pane { position: absolute; inset: 0; }
+.stx-loading { display: grid; place-items: center; color: rgba(255, 255, 255, .6); font-size: 14px; background: linear-gradient(100deg, #07080a 30%, #14171c 50%, #07080a 70%); background-size: 200% 100%; animation: share-shine 1.3s linear infinite; }
+.stx-foot { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 18px; font-size: 13px; color: var(--mute); border-top: 1px solid var(--rule); }
+.stx-links { display: flex; gap: 14px; }
+.stx-links a { color: var(--hl); font-weight: 600; }
+.stx-photo { margin: 0; height: 100%; position: relative; overflow: hidden; }
+.stx-photo img { width: 100%; height: 100%; object-fit: cover; animation: stx-kb 18s ease-in-out infinite alternate; }
+@keyframes stx-kb { from { transform: scale(1); } to { transform: scale(1.08) translate(-1.5%, -1%); } }
+.stx-photo figcaption { position: absolute; right: 10px; bottom: 8px; font-size: 11px; }
+.stx-photo figcaption a { color: #fff; opacity: .75; text-shadow: 0 1px 3px #000; }
+.stx-sv { width: 100%; height: 100%; border: 0; display: block; }
+
+.st3d { position: absolute; inset: 0; overflow: hidden; cursor: grab; touch-action: none; user-select: none; outline: none;
+  background: radial-gradient(120% 70% at 50% 0%, #2a3a52 0%, #101722 45%, #07080a 100%); }
+.st3d:active { cursor: grabbing; }
+.st3d:focus-visible { box-shadow: inset 0 0 0 2px var(--acc); }
+.st3d-stage { position: absolute; left: 50%; top: 58%; width: 0; height: 0; perspective: 900px; }
+.st3d-pinwrap { position: absolute; left: 50%; top: 58%; width: 0; height: 0; pointer-events: none; }
+.st3d-plane { position: absolute; left: 0; top: 0; will-change: transform; }
+.st3d-plane img { position: absolute; width: 256px; height: 256px; display: block; pointer-events: none; }
+.st3d-plane::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 0 160px 90px #07080a; pointer-events: none; }
+.st3d-ring { position: absolute; width: 230px; height: 230px; margin: -115px 0 0 -115px; border-radius: 50%; border: 3px solid rgba(255, 255, 255, .8);
+  box-shadow: 0 0 0 6px rgba(30, 210, 111, .35), 0 0 40px rgba(30, 210, 111, .5); animation: st3d-pulse 2.4s ease-in-out infinite; }
+@keyframes st3d-pulse { 50% { box-shadow: 0 0 0 14px rgba(30, 210, 111, .12), 0 0 60px rgba(30, 210, 111, .35); } }
+.st3d-pin { position: absolute; left: 0; top: -40px; display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none; transform-origin: 50% 100%; }
+.st3d-pin b { padding: 4px 10px; border-radius: 4px; background: rgba(7, 8, 10, .82); color: #fff; font: 800 15px/1 var(--fc); text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+.st3d-pin::after { content: ""; width: 2px; height: 34px; background: linear-gradient(#fff, rgba(255, 255, 255, 0)); }
+.st3d-badge { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: #fff; box-shadow: 0 4px 14px rgba(0, 0, 0, .55); }
+.st3d-fog { position: absolute; inset: 0 0 auto; height: 38%; background: linear-gradient(#0d1420 10%, rgba(13, 20, 32, 0)); pointer-events: none; }
+.st3d-hint { position: absolute; left: 50%; top: 14px; padding: 6px 12px; border-radius: 999px; background: rgba(0, 0, 0, .55); color: #fff; font-size: 12.5px; text-align: center; max-width: calc(100% - 24px); width: max-content; pointer-events: none; }
+.st3d-ctrl { position: absolute; right: 12px; bottom: 30px; display: flex; flex-direction: column; gap: 6px; }
+.st3d-ctrl button { width: 36px; height: 36px; border: 1px solid rgba(255, 255, 255, .2); border-radius: 8px; background: rgba(7, 8, 10, .7); color: #fff; font-size: 16px; cursor: pointer; backdrop-filter: blur(4px); }
+.st3d-ctrl button:hover, .st3d-ctrl button.on { border-color: var(--acc); color: var(--acc); }
+.st3d-credit { position: absolute; left: 10px; bottom: 6px; font-size: 10.5px; color: rgba(255, 255, 255, .55); pointer-events: none; }
+@media (max-width: 720px) {
+  .stx-view { height: 340px; }
+  .stx-tabs { width: 100%; }
+  .stx-tabs button { flex: 1; padding: 8px 6px; }
+}

@@ -46,7 +46,7 @@ from . import config
 from .ai import client as ai
 from .ai import news as ai_news
 from .core import auth, identity, news_filter, prob
-from .sources import espn, footballdata, news_rss, transfermarkt
+from .sources import espn, footballdata, news_rss, stadium, transfermarkt
 from . import ai_routes, sports
 
 ROOT = config.ROOT
@@ -82,7 +82,7 @@ TTL_RULES = [
     (r"^/me$", 1 * H, 6 * H),
 ]
 TTL_RULES = [(re.compile(p), a, b) for p, a, b in TTL_RULES]
-ALLOWED = [r for r, _, _ in TTL_RULES if r.pattern != "^/me$"] + [re.compile(r"^/(jogador-tm|time-tm|minijogos/craques)$"), re.compile(r"^/campeonatos/\d+/chances$"),
+ALLOWED = [r for r, _, _ in TTL_RULES if r.pattern != "^/me$"] + [re.compile(r"^/(jogador-tm|time-tm|estadio|minijogos/craques)$"), re.compile(r"^/campeonatos/\d+/chances$"),
                                                                  re.compile(r"^/esportes/(nba/(jogos|jogo/\d+|classificacao|time/\d+|jogador/\d+)|f1(/corrida/\d+(/analise)?|/piloto/[a-z_]+|/equipe/[a-z_]+)?)$"),
                                                                  re.compile(r"^/transmissoes$")]
 NEWS_PARAMS = {"pagina", "por_pagina", "time_id", "campeonato_id", "provedor", "desde", "tipo", "assunto", "competicao"}
@@ -584,6 +584,13 @@ def route(path: str, query: dict | None = None) -> tuple[int, bytes, str]:
         c = transfermarkt.club(nome, query.get("nome_completo") or None, query.get("pais") or None)
         return (200, json.dumps(c, ensure_ascii=False).encode(), "transfermarkt") if c else (404, b'{"message":"Clube n\\u00e3o encontrado no Transfermarkt"}', "transfermarkt")
 
+    if path == "/estadio":  # foto, mapa e panoramas 360° do estádio (Wikipédia/Wikidata/Commons)
+        nome, clube = (query.get("nome") or "").strip()[:120], (query.get("clube") or "").strip()[:80]
+        if not nome and not clube:
+            return 400, b'{"message":"Informe o nome do est\\u00e1dio"}', "wikimedia"
+        e = stadium.lookup(nome, clube or None)
+        return (200, json.dumps(e, ensure_ascii=False).encode(), "wikimedia") if e else (404, b'{"message":"Est\\u00e1dio n\\u00e3o encontrado"}', "wikimedia")
+
     m = re.match(r"^/campeonatos/(\d+)/chances$", path)
     if m:  # probabilidades de título, vagas e rebaixamento (simulação)
         try:
@@ -998,12 +1005,17 @@ TRUST_PROXY = os.environ.get("TRUST_PROXY", "1") != "0"  # atrás do proxy da ho
 STATUS_TOKEN = os.environ.get("STATUS_TOKEN", "")
 # Limite por visitante (IP): protege as cotas das APIs. Rotas que acessam o Transfermarkt são mais caras.
 RATE = {"api": (int(os.environ.get("RATE_API_MIN", "240")), 60), "heavy": (int(os.environ.get("RATE_HEAVY_MIN", "20")), 60)}
-HEAVY = re.compile(r"^/(jogador-tm|time-tm)$")
+HEAVY = re.compile(r"^/(jogador-tm|time-tm|estadio)$")
 AUTH_PATH = re.compile(r"^/(auth|conta)(/[\w-]+){1,2}$")
 AI_POST = {"/ia/perguntar"}
+_frames = []  # iframes de fora liberados um a um
 if auth.TURNSTILE_SITE and auth.TURNSTILE_SECRET:  # captcha da Cloudflare: libera só o domínio dela
-    CSP = CSP.replace("script-src 'self' 'unsafe-inline'", "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com") \
-             .replace("frame-ancestors", "frame-src https://challenges.cloudflare.com; frame-ancestors")
+    CSP = CSP.replace("script-src 'self' 'unsafe-inline'", "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com")
+    _frames.append("https://challenges.cloudflare.com")
+if stadium.EMBED_KEY:  # Street View do estádio (opcional): só o iframe do Google Maps
+    _frames.append("https://www.google.com")
+if _frames:
+    CSP = CSP.replace("frame-ancestors", f"frame-src {' '.join(_frames)}; frame-ancestors")
 
 _static: dict[str, tuple[float, bytes, bytes, str]] = {}  # caminho -> (mtime, corpo, corpo gzip, etag)
 # Frontend: o app novo (React, compilado em web/dist) tem prioridade; o clássico (public/) atende o resto e fica em /classic

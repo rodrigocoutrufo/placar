@@ -7,7 +7,7 @@ europeias), NBA e Fórmula 1. Interface e textos em **português do Brasil**.
 - `server.py` — ponto de entrada (`python server.py [porta]`, padrão 8080). Chama `placar.server.main`.
 - `placar/` — backend em Python **só com a biblioteca padrão** (sem frameworks):
   - `server.py` — HTTP, rotas `/api/...`, cache, SSE (`/api/stream`), CSP, agendador em segundo plano.
-  - `sources/` — fontes de dados: `espn.py` (ESPN, rodadas reconstruídas 1–38), `footballdata.py`, `news_rss.py`, `transfermarkt.py`.
+  - `sources/` — fontes de dados: `espn.py` (ESPN, rodadas reconstruídas 1–38), `footballdata.py`, `news_rss.py`, `transfermarkt.py`, `stadium.py` (estádio via Wikipédia/Wikidata, cache de 30 dias).
   - `sports/` — `nba.py` (ESPN), `f1.py` (Jolpica/Ergast + ESPN ao vivo), `openf1.py` (análise oficial de corrida, sessões encerradas).
   - `core/` — `prob.py` (probabilidades), `auth.py` (contas, sessões, captcha PoW), `identity.py`, `news_filter.py`.
   - `ai/` — IA: `client.py` (Gemini padrão; Anthropic se `ANTHROPIC_API_KEY`; Ollama opcional), `insights.py`, `assistant.py`, `news.py`, `foryou.py`.
@@ -37,6 +37,7 @@ Os testes de IA zeram as chaves antes de importar: **nunca** chamar IA real nos 
 
 ## Regras importantes
 - Segredos só no `.env` (nunca versionar; há `.env.example`). Nunca expor chaves ao frontend; `/api/me` fica bloqueado.
+  Única exceção: `GOOGLE_MAPS_EMBED_KEY` (Street View do estádio) vai no endereço do iframe, como o Google exige; deve ser restrita ao domínio e à Maps Embed API.
 - Backend sem dependências externas obrigatórias; manter a biblioteca padrão.
 - Textos visíveis em português; comentários no código também.
 - CSP restrita (ver `CSP` em `placar/server.py`): scripts só do próprio site; imagens https; áudio do rádio da F1 liberado em `media-src`.
