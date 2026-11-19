@@ -37,6 +37,7 @@ import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from http.cookies import CookieError, SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -84,10 +85,10 @@ TTL_RULES = [
 TTL_RULES = [(re.compile(p), a, b) for p, a, b in TTL_RULES]
 ALLOWED = [r for r, _, _ in TTL_RULES if r.pattern != "^/me$"] + [re.compile(r"^/(jogador-tm|time-tm|estadio|minijogos/craques)$"), re.compile(r"^/campeonatos/\d+/chances$"),
                                                                  re.compile(r"^/esportes/(nba/(jogos|jogo/\d+|classificacao|time/\d+|jogador/\d+)|f1(/corrida/\d+(/analise)?|/piloto/[a-z_]+|/equipe/[a-z_]+)?)$"),
-                                                                 re.compile(r"^/transmissoes$")]
+                                                                 re.compile(r"^/transmissoes$"), re.compile(r"^/agenda$")]
 NEWS_PARAMS = {"pagina", "por_pagina", "time_id", "campeonato_id", "provedor", "desde", "tipo", "assunto", "competicao"}
 # Ordem de exibição: Brasil primeiro (Série A antes da Série B), depois América do Sul e Europa
-PRIORITY = [10, 2, 7, 9, 14, 106, 101, 102, 103, 104, 105, 107, 108]
+PRIORITY = [10, 2, 7, 9, 14, 106, 101, 102, 103, 104, 105, 107, 108] + [l for l in espn.LEAGUE_ORDER if l not in (10, 14, 2, 7, 9)]
 COMP_SLUG = {10: "brasileirao_serie_a", 14: "brasileirao_serie_b", 2: "copa_do_brasil", 7: "libertadores", 9: "sul_americana"}
 
 _mem: dict[str, tuple[float, int, bytes]] = {}
@@ -292,7 +293,7 @@ _rss_state = {"at": 0.0}
 def known_teams() -> list[dict]:
     """Todos os times que o app conhece (ESPN + football-data em cache), para marcar as notícias."""
     teams = {}
-    for lid in espn.LEAGUE_ORDER:
+    for lid in espn.CORE:  # só Brasil e Conmebol: milhares de times estrangeiros dariam falsos positivos nas manchetes
         try:
             for e in espn._events(lid):
                 for c in e["competitions"][0]["competitors"]:
@@ -530,6 +531,96 @@ def craques_pool() -> list[dict]:
     return uniq
 
 
+# ---------------------------------------------------------------- agenda (jogos de todos os campeonatos)
+_agenda = {"exp": 0.0, "body": b""}
+_agenda_lock = threading.Lock()
+
+
+def _rounds_list(r):
+    items = r if isinstance(r, list) else [x for v in (r or {}).values() for x in (v if isinstance(v, list) else [v])]
+    return sorted((x for x in items if isinstance(x, dict) and x.get("rodada") is not None), key=lambda x: x["rodada"])
+
+
+def _fase_matches(f):
+    out = []
+
+    def walk(v):
+        if isinstance(v, list):
+            for x in v:
+                walk(x)
+        elif isinstance(v, dict):
+            if v.get("partida_id"):
+                out.append(v)
+            else:
+                for x in v.values():
+                    walk(x)
+    walk((f or {}).get("partidas"))
+    for c in (f or {}).get("chaves") or []:
+        walk(c.get("partida_ida"))
+        walk(c.get("partida_volta"))
+    return out
+
+
+def agenda() -> bytes:
+    """Rodada anterior, atual e próxima de cada liga e a fase atual (com a anterior e a próxima) de cada copa,
+    numa resposta só. Antes o navegador montava isso sozinho com ~5 chamadas por campeonato: com 40
+    campeonatos passava do limite de requisições por visitante."""
+    if _agenda["exp"] > time.time():
+        return _agenda["body"]
+    with _agenda_lock:  # várias visitas ao mesmo tempo montam a agenda uma vez só
+        if _agenda["exp"] > time.time():
+            return _agenda["body"]
+        st, body, _ = route("/campeonatos")
+        comps = json.loads(body) if st == 200 else []
+
+        def get(p):
+            st, b, _ = route(p)
+            return json.loads(b) if st == 200 else None
+
+        def one(c):
+            cid = c["campeonato_id"]
+            try:
+                if c.get("rodada_atual"):
+                    nums = [r["rodada"] for r in _rounds_list(get(f"/campeonatos/{cid}/rodadas"))]
+                    cur = c["rodada_atual"]["rodada"]
+                    i = nums.index(cur) if cur in nums else -1
+                    want = nums[max(0, i - 1): i + 2] if i >= 0 else [cur]
+                    return [m for n in want for m in ((get(f"/campeonatos/{cid}/rodadas/{n}") or {}).get("partidas") or [])]
+                if c.get("fase_atual"):
+                    ids = [c["fase_atual"]["fase_id"]]
+                    fases = (get(f"/campeonatos/{cid}") or {}).get("fases") or []
+                    k = next((j for j, f in enumerate(fases) if f.get("fase_id") == ids[0]), -1)
+                    if 0 <= k < len(fases) - 1:
+                        ids.append(fases[k + 1]["fase_id"])
+                    if k > 0:
+                        ids.append(fases[k - 1]["fase_id"])
+                    return [m for fid in ids for m in _fase_matches(get(f"/campeonatos/{cid}/fases/{fid}"))]
+            except Exception as e:  # noqa: BLE001 — um campeonato com problema não tira os outros da agenda
+                sys.stderr.write(f"agenda {cid}: {e!r}\n")
+            return []
+
+        with ThreadPoolExecutor(8) as ex:
+            lists = list(ex.map(one, comps))
+        # só o que as telas usam (calendário, destaques, bolão): de 21 dias atrás a 30 dias à frente. Uma fase de
+        # liga inteira (Europa League, Liga das Nações) traria meses de jogos à toa.
+        lo, hi = datetime.now(BRT) - timedelta(days=21), datetime.now(BRT) + timedelta(days=30)
+
+        def in_window(m):
+            try:
+                return lo <= datetime.strptime(m["data_realizacao_iso"], "%Y-%m-%dT%H:%M:%S%z") <= hi
+            except (KeyError, TypeError, ValueError):
+                return True  # sem data (a definir): fica
+        seen, out = set(), []
+        for ms in lists:
+            for m in ms:
+                if m.get("partida_id") not in seen and in_window(m):
+                    seen.add(m.get("partida_id"))
+                    out.append(m)
+        body = json.dumps(out, ensure_ascii=False).encode()
+        _agenda.update(exp=time.time() + 60, body=body)
+        return body
+
+
 # ---------------------------------------------------------------- roteamento
 def route(path: str, query: dict | None = None) -> tuple[int, bytes, str]:
     query = query or {}
@@ -548,6 +639,9 @@ def route(path: str, query: dict | None = None) -> tuple[int, bytes, str]:
         rank = {cid: i for i, cid in enumerate(PRIORITY)}
         merged.sort(key=lambda c: rank.get(int(c["campeonato_id"]), 99))
         return 200, json.dumps(merged, ensure_ascii=False).encode(), "live" if camps else "espn"
+
+    if path == "/agenda":
+        return 200, agenda(), "server"
 
     if path == "/ao-vivo":
         live = live_for_plan(ids)
@@ -980,6 +1074,9 @@ def scheduler():
         route(f"/campeonatos/{lid}/artilharia")  # também alimenta o minijogo Craque do dia
 
     while True:
+        if ESPN_ON:
+            every("espn", 60, espn.warm)  # temporadas das ~30 ligas da ESPN sempre em cache (em paralelo)
+        every("agenda", 55, agenda)  # agenda da página inicial pronta antes do visitante pedir
         every("tabelas", 300, tables)
         every("noticias", 600, lambda: route("/noticias", {"por_pagina": "20"}))
         every("craques", 1800, craques_pool)  # minijogo Craque do dia pronto antes do primeiro jogador

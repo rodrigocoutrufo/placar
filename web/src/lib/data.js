@@ -1,43 +1,18 @@
 // Consultas compostas (várias chamadas à API) usadas por mais de uma tela.
 import { useQuery } from '@tanstack/react-query';
-import { fetchCached, soft, get, failHard } from './api.js';
-import { isLeague, roundsList, faseMatches, parseDate, isLive } from './format.js';
+import { get, failHard } from './api.js';
+import { parseDate, isLive } from './format.js';
 import { matchAffinity, Taste } from './store.js';
 
-// jogos da rodada anterior, atual e próxima de cada campeonato (mesma lógica do app clássico)
-export async function loadAgenda(comps) {
-  const jobs = comps.map(async (c) => {
-    try {
-      if (isLeague(c) && c.rodada_atual) {
-        const rounds = roundsList(await soft(fetchCached(`/campeonatos/${c.campeonato_id}/rodadas`, 600_000)));
-        const nums = rounds.map((r) => r.rodada);
-        const i = nums.indexOf(c.rodada_atual.rodada);
-        const want = i >= 0 ? nums.slice(Math.max(0, i - 1), i + 2) : [c.rodada_atual.rodada];
-        const rs = await Promise.all(want.map((n) => soft(fetchCached(`/campeonatos/${c.campeonato_id}/rodadas/${n}`, 60_000))));
-        return rs.filter(Boolean).flatMap((r) => r.partidas || []);
-      }
-      if (c.fase_atual) {
-        const ids = [c.fase_atual.fase_id];
-        const detail = await soft(fetchCached(`/campeonatos/${c.campeonato_id}`, 600_000));
-        const fases = (detail && detail.fases) || [];
-        const i = fases.findIndex((f) => f.fase_id === c.fase_atual.fase_id);
-        if (i >= 0 && fases[i + 1]) ids.push(fases[i + 1].fase_id);
-        if (i > 0) ids.push(fases[i - 1].fase_id);
-        const fs = await Promise.all(ids.map((id) => soft(fetchCached(`/campeonatos/${c.campeonato_id}/fases/${id}`, 120_000))));
-        return fs.filter(Boolean).flatMap(faseMatches);
-      }
-    } catch { /* campeonato indisponível */ }
-    return [];
-  });
-  const seen = new Set();
-  return (await Promise.all(jobs)).flat().filter((p) => !seen.has(p.partida_id) && seen.add(p.partida_id));
-}
+// jogos da rodada anterior, atual e próxima de cada campeonato: o servidor monta tudo numa chamada só
+// (antes eram ~5 chamadas por campeonato; com 40 campeonatos passava do limite de requisições)
+export const loadAgenda = () => get('/agenda');
 
 export function useComps() {
   return useQuery({ queryKey: ['/campeonatos'], queryFn: () => get('/campeonatos'), staleTime: 600_000, throwOnError: failHard });
 }
 export function useAgenda(comps) {
-  return useQuery({ queryKey: ['agenda', (comps || []).length], queryFn: () => loadAgenda(comps), enabled: !!comps, staleTime: 60_000 });
+  return useQuery({ queryKey: ['agenda'], queryFn: loadAgenda, enabled: !!comps, staleTime: 60_000 });
 }
 
 export const compRank = (id, base) => base - Math.min(40, Taste.score('c', id) * 3);

@@ -8,6 +8,19 @@ export const LOGO = {
 
 // m1/m2 = fundo profundo; acc = destaque (fundo escuro); accL = destaque legível em fundo claro; ink = texto sobre o destaque
 const COMP = [
+  // específicos antes dos genéricos ("serie b italiana" antes de "serie b"; "conference" antes de qualquer "league")
+  { re: /europa league/, m1: '#140800', m2: '#3d1a00', acc: '#ff7a00', accL: '#c25700', ink: '#1a0b00', pat: 'stars' },
+  { re: /conference/, m1: '#021508', m2: '#063d1b', acc: '#00d45a', accL: '#008a3a', ink: '#00170a', pat: 'stars' },
+  { re: /nacoes|nations/, m1: '#04081c', m2: '#121f5c', acc: '#9fb4ff', accL: '#3550c4', ink: '#060b24', pat: 'stars' },
+  { re: /serie b italiana/, m1: '#04121f', m2: '#0b3352', acc: '#3ddc97', accL: '#0d8a57', ink: '#02150d', pat: 'hex' },
+  { re: /championship|copa da (inglaterra|liga inglesa)/, m1: '#0c0718', m2: '#2a1a52', acc: '#b88cff', accL: '#6c3fd1', ink: '#12062a', pat: 'diag' },
+  { re: /mls/, m1: '#050b16', m2: '#13294a', acc: '#4fb3ff', accL: '#0d6fc2', ink: '#03101d', pat: 'diag' },
+  { re: /liga mx/, m1: '#0d0b03', m2: '#2e2a0a', acc: '#d7c35a', accL: '#7d6b10', ink: '#191500', pat: 'hex' },
+  { re: /argentina/, m1: '#04101d', m2: '#0d3150', acc: '#75c8ff', accL: '#1a78bf', ink: '#04121f', pat: 'diag' },
+  { re: /saudita/, m1: '#021409', m2: '#06381c', acc: '#22d36b', accL: '#0c8a43', ink: '#02170a', pat: 'hex' },
+  { re: /j-?league/, m1: '#150306', m2: '#420a12', acc: '#ff4d5e', accL: '#c71a2b', ink: '#fff', pat: 'dots' },
+  { re: /paulist|carioca|mineiro|gauch/, m1: '#0a0a0a', m2: '#2a2a2a', acc: '#f4f4f4', accL: '#333333', ink: '#0a0a0a', pat: 'diag' },
+  { re: /copa do rei|copa da (italia|alemanha|franca)/, m1: '#120a02', m2: '#3a2408', acc: '#f2b43a', accL: '#9a6a00', ink: '#1a1000', pat: 'stars' },
   { re: /champions/, m1: '#020722', m2: '#0a1d6e', acc: '#3f7cff', accL: '#1f4fd8', ink: '#fff', pat: 'stars' },
   { re: /premier/, m1: '#18001e', m2: '#3d0049', acc: '#ff2882', accL: '#c4006a', ink: '#fff', pat: 'diag' },
   { re: /la ?liga/, m1: '#1a0505', m2: '#4d0e0a', acc: '#ff4b44', accL: '#d42a22', ink: '#fff', pat: 'diag' },

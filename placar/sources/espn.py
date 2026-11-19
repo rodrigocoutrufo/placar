@@ -14,6 +14,7 @@ import time
 import unicodedata
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
 OFFSET = 900_000_000
@@ -30,12 +31,67 @@ LEAGUES = {
     7: {"slug": "conmebol.libertadores", "nome": "Copa Libertadores da América", "popular": "Libertadores", "tipo": "Misto", "regiao": "continental", "league": False},
     9: {"slug": "conmebol.sudamericana", "nome": "Copa Sul-Americana", "popular": "Sul-Americana", "tipo": "Misto", "regiao": "continental", "league": False},
 }
-LEAGUE_ORDER = [10, 14, 2, 7, 9]
+CORE = [10, 14, 2, 7, 9]  # Brasil e Conmebol: base dos times reconhecidos nas notícias
+
+
+def _L(slug, nome, popular, regiao, league, pais=None, tipo=None, rr=True, grupo_zona=None):
+    """Campeonato extra da ESPN (grátis, sem chave). rr=False: times se enfrentam mais de uma vez com o mesmo
+    mandante (MLS, Argentina); grupo_zona: quantos se classificam em cada grupo/conferência da tabela."""
+    return {"slug": slug, "nome": nome, "popular": popular, "regiao": regiao, "league": league, "pais": pais,
+            "tipo": tipo or ("Pontos Corridos" if league else "Mata-Mata"), "rr": rr, "grupo_zona": grupo_zona}
+
+
+# IDs 201+ para não colidir com a API Futebol (1–99) nem com a football-data (101–108)
+LEAGUES.update({
+    # Brasil: estaduais
+    201: _L("bra.camp.paulista", "Campeonato Paulista", "Paulistão", "nacional", False, "Brasil", "Misto"),
+    202: _L("bra.camp.carioca", "Campeonato Carioca", "Carioca", "nacional", False, "Brasil", "Misto"),
+    203: _L("bra.camp.mineiro", "Campeonato Mineiro", "Mineiro", "nacional", False, "Brasil", "Misto"),
+    204: _L("bra.camp.gaucho", "Campeonato Gaúcho", "Gauchão", "nacional", False, "Brasil", "Misto"),
+    # América do Sul: ligas nacionais
+    211: _L("arg.1", "Liga Profissional Argentina", "Liga Argentina", "continental", True, "Argentina", rr=False, grupo_zona=8),
+    213: _L("chi.1", "Campeonato Chileno", "Liga Chilena", "continental", True, "Chile"),
+    214: _L("uru.1", "Campeonato Uruguaio", "Liga Uruguaia", "continental", True, "Uruguai", rr=False),
+    # Europa: copas continentais, segundas divisões, outras ligas e copas nacionais
+    231: _L("uefa.europa", "UEFA Europa League", "Europa League", "europa", False, "Europa", "Misto"),
+    232: _L("uefa.europa.conf", "UEFA Conference League", "Conference League", "europa", False, "Europa", "Misto"),
+    233: _L("eng.2", "EFL Championship", "Championship", "europa", True, "Inglaterra"),
+    234: _L("esp.2", "LaLiga Hypermotion", "LaLiga 2", "europa", True, "Espanha"),
+    235: _L("ita.2", "Serie B Italiana", "Serie B Italiana", "europa", True, "Itália"),
+    236: _L("ger.2", "2. Bundesliga", "2. Bundesliga", "europa", True, "Alemanha"),
+    237: _L("tur.1", "Süper Lig", "Süper Lig", "europa", True, "Turquia"),
+    238: _L("bel.1", "Pro League Belga", "Liga Belga", "europa", True, "Bélgica"),
+    239: _L("sco.1", "Scottish Premiership", "Liga Escocesa", "europa", True, "Escócia", rr=False),
+    240: _L("eng.fa", "FA Cup", "Copa da Inglaterra", "europa", False, "Inglaterra"),
+    241: _L("eng.league_cup", "Carabao Cup", "Copa da Liga Inglesa", "europa", False, "Inglaterra"),
+    242: _L("esp.copa_del_rey", "Copa del Rey", "Copa do Rei", "europa", False, "Espanha"),
+    243: _L("ita.coppa_italia", "Coppa Italia", "Copa da Itália", "europa", False, "Itália"),
+    244: _L("ger.dfb_pokal", "DFB-Pokal", "Copa da Alemanha", "europa", False, "Alemanha"),
+    245: _L("fra.coupe_de_france", "Coupe de France", "Copa da França", "europa", False, "França"),
+    # América do Norte
+    221: _L("usa.1", "Major League Soccer", "MLS", "americas", True, "Estados Unidos", rr=False, grupo_zona=9),
+    222: _L("mex.1", "Liga MX", "Liga MX", "americas", True, "México"),
+    # Ásia
+    251: _L("ksa.1", "Saudi Pro League", "Liga Saudita", "mundo", True, "Arábia Saudita"),
+    252: _L("jpn.1", "J1 League", "J-League", "mundo", True, "Japão"),
+    # Seleções
+    261: _L("uefa.nations", "UEFA Nations League", "Liga das Nações", "selecoes", False, "Europa", "Misto"),
+})
+LEAGUE_ORDER = CORE + [201, 202, 203, 204, 211, 213, 214, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245,
+                       221, 222, 251, 252, 261]
 
 # Faixas da tabela por posição (aproximação do regulamento vigente)
 ZONES = {
     10: [(1, 4, "libertadores"), (5, 6, "pre-libertadores"), (7, 12, "sul-americana"), (17, 20, "rebaixamento")],
     14: [(1, 4, "acesso"), (17, 20, "rebaixamento")],
+    201: [(1, 8, "classificados"), (15, 16, "rebaixamento")],
+    231: [(1, 8, "oitavas"), (9, 24, "playoffs"), (25, 36, "eliminado")],
+    232: [(1, 8, "oitavas"), (9, 24, "playoffs"), (25, 36, "eliminado")],
+    233: [(1, 2, "acesso"), (3, 6, "playoffs"), (22, 24, "rebaixamento")],
+    234: [(1, 2, "acesso"), (3, 6, "playoffs"), (19, 22, "rebaixamento")],
+    235: [(1, 2, "acesso"), (3, 8, "playoffs"), (16, 17, "playoff-rebaixamento"), (18, 20, "rebaixamento")],
+    236: [(1, 2, "acesso"), (3, 3, "playoffs"), (16, 16, "playoff-rebaixamento"), (17, 18, "rebaixamento")],
+    222: [(1, 6, "classificados"), (7, 10, "playoffs")],
 }
 
 TEAM_NAMES = {
@@ -53,7 +109,17 @@ PHASES = {
     "round of 32": "16 avos de Final", "rd of 32": "16 avos de Final", "round of 16": "Oitavas de Final", "rd of 16": "Oitavas de Final",
     "quarterfinals": "Quartas de Final", "quarterfinal": "Quartas de Final", "quarter-finals": "Quartas de Final",
     "semifinals": "Semifinal", "semifinal": "Semifinal", "semi-finals": "Semifinal", "final": "Final", "finals": "Final",
+    "league phase": "Fase de Liga", "first phase": "Primeira Fase", "second phase": "Segunda Fase", "group phase": "Fase de Grupos",
+    "quarterfinal round": "Quartas de Final", "third place": "Disputa do 3º lugar", "3rd-place match": "Disputa do 3º lugar",
+    "relegation playoffs": "Playoff de rebaixamento", "promotion playoffs": "Playoff de acesso", "regular season": "Temporada regular",
+    "seventh round": "Sétima Fase", "sixth round": "Sexta Fase", "eighth round": "Oitava Fase", "ninth round": "Nona Fase",
+    "round of 64": "32 avos de Final", "preliminary round": "Fase Preliminar", "qualifying round": "Qualificatória",
+    "relegation stage": "Fase de rebaixamento", "taca guanabara": "Taça Guanabara", "taca rio": "Taça Rio", "farroupilha": "Taça Farroupilha", "playoffs": "Playoffs",
+    "torneo apertura": "Apertura", "torneo clausura": "Clausura", "torneo intermedio": "Intermédio", "apertura": "Apertura", "clausura": "Clausura",
 }
+# etapas de mata-mata (pelo slug da etapa na ESPN): ficam fora das rodadas de uma liga
+KO_RX = re.compile(r"final|semi|quarter|round-of|rd-of|playoff|play-off|wild-card|liguilla|promotion|relegation|placement|"
+                   r"championship|knockout|repechaje|reclasific|3rd|third", re.I)
 
 COUNTRY_PT = {
     "Brazil": "Brasil", "Uruguay": "Uruguai", "Colombia": "Colômbia", "Paraguay": "Paraguai", "Ecuador": "Equador",
@@ -91,6 +157,8 @@ POS_ABBR = {
 _cache: dict[str, tuple[float, object]] = {}
 _lock = threading.Lock()
 _event_league: dict[int, int] = {}  # id ESPN do evento -> campeonato_id
+_event_stage: dict[int, int] = {}  # id ESPN do evento -> etapa (tipo da temporada na ESPN: Apertura, quartas...)
+_season_memo: dict[int, tuple] = {}
 _team_colors: dict[str, tuple] = {}  # id ESPN do time -> (cor, cor secundária)
 stats = {"requests": 0, "errors": 0}
 
@@ -160,7 +228,7 @@ def team(t: dict) -> dict:
     # versão para fundo escuro (mesmo padrão de URL da ESPN)
     logo_dark = next((l.get("href") for l in t.get("logos", []) if "dark" in l.get("rel", [])), None) \
         or (logo.replace("/500/", "/500-dark/") if logo and "/teamlogos/soccer/500/" in logo else None)
-    name = t.get("shortDisplayName") or t.get("displayName") or t.get("name") or ""
+    name = (t.get("shortDisplayName") or t.get("displayName") or t.get("name") or "").strip()  # a ESPN às vezes manda "Boca "
     tid = str(t["id"])
     if tid in DARK_LOGO_OUTDATED:  # versão escura da ESPN com escudo antigo: usa a normal
         logo_dark = logo
@@ -175,8 +243,8 @@ def team(t: dict) -> dict:
         "time_id": OFFSET + int(tid),
         "nome_popular": TEAM_NAMES.get(name, name),
         "sigla": t.get("abbreviation") or name[:3].upper(),
-        "escudo": logo,
-        "escudo_escuro": logo_dark,
+        "escudo": logo.replace("http://", "https://", 1) if logo else None,  # a CSP só aceita imagens https
+        "escudo_escuro": logo_dark.replace("http://", "https://", 1) if logo_dark else None,
         "cor": c1,
         "cor_secundaria": c2,
     }
@@ -267,10 +335,9 @@ def _year() -> int:
     return datetime.now(BRT).year
 
 
-def season(lid: int) -> dict:
-    """Todos os eventos da temporada (1 requisição). TTL curto se houver jogo perto de agora."""
-    slug = LEAGUES[lid]["slug"]
-    url = f"{SITE}/{slug}/scoreboard?dates={_year()}&limit=1000"
+def _year_events(slug: str, y: int) -> dict:
+    """Todos os jogos de um ano civil (a ESPN não aceita intervalo de datas). TTL curto se houver jogo perto de agora."""
+    url = f"{SITE}/{slug}/scoreboard?dates={y}&limit=1000"
     with _lock:
         hit = _cache.get(url)
     if hit and hit[0] > time.time():
@@ -280,9 +347,73 @@ def season(lid: int) -> dict:
     near = any(abs((_parse_dt(e["date"]) - now).total_seconds()) < 4 * 3600 for e in data.get("events", []) if e.get("date"))
     with _lock:
         _cache[url] = (time.time() + (60 if near else 300), data)
-    for e in data.get("events", []):
-        _event_league[int(e["id"])] = lid
     return data
+
+
+def season(lid: int) -> dict:
+    """Jogos da temporada atual. Ligas de agosto a maio (Europa, Arábia, México) atravessam dois anos civis:
+    busca os dois e fica só com a temporada atual (cada jogo traz o ano da sua temporada)."""
+    slug, y = LEAGUES[lid]["slug"], _year()
+    base = _year_events(slug, y)
+    s = ((base.get("leagues") or [{}])[0].get("season") or {})
+    sy = _int(s.get("year"), y)
+    short = re.match(r"\d{4}(?:-\d{2,4})?", str(s.get("displayName") or ""))  # "2026" ou "2026-27"
+    short = short.group() if short else str(sy)
+    years = [sy, sy + 1] if "-" in short else [sy]
+    parts = [base if yy == y else _year_events(slug, yy) for yy in years]
+    key = tuple(id(p) for p in parts)
+    memo = _season_memo.get(lid)
+    if memo and memo[0] == key:  # mesmas respostas em cache: mesma temporada já montada
+        return memo[1]
+    evs, seen = [], set()
+    for p in parts:
+        for e in p.get("events", []):
+            eid = int(e["id"])
+            _event_league[eid] = lid  # todo jogo conhecido abre a página da partida, mesmo de outra temporada
+            se = e.get("season") or {}
+            if _int(se.get("year"), sy) != sy or eid in seen:
+                continue
+            seen.add(eid)
+            _event_stage[eid] = _int(se.get("type"))
+            evs.append(e)
+    out = {"leagues": base.get("leagues") or [], "events": evs, "season_year": sy, "season_name": short}
+    _season_memo[lid] = (key, out)
+    return out
+
+
+def _stages(lid) -> list[dict]:
+    """Etapas da temporada na ordem (Apertura, Clausura, fase de liga, quartas...): a ESPN marca cada jogo com uma."""
+    st: dict[int, dict] = {}
+    for e in season(lid)["events"]:
+        se = e.get("season") or {}
+        k, d = _int(se.get("type")), _parse_dt(e.get("date"))
+        s = st.setdefault(k, {"type": k, "slug": se.get("slug") or "", "start": d, "end": d, "n": 0})
+        s["n"] += 1
+        if d:
+            s["start"], s["end"] = min(s["start"] or d, d), max(s["end"] or d, d)
+    far = datetime.max.replace(tzinfo=timezone.utc)
+    return sorted(st.values(), key=lambda s: s["start"] or far)
+
+
+def _table_stages(lid):
+    return [s for s in _stages(lid) if not KO_RX.search(s["slug"])]
+
+
+def _table_stage(lid):
+    """Etapa de pontos corridos em vigor: a última que já começou (ex.: Clausura na Argentina)."""
+    tbl = _table_stages(lid)
+    soon = datetime.now(timezone.utc) + timedelta(days=21)
+    started = [s for s in tbl if s["start"] and s["start"] <= soon]
+    return started[-1] if started else (tbl[0] if tbl else None)
+
+
+def _stage_label(slug):
+    """'apertura---round-of-16' -> 'Apertura · Oitavas de Final'; 'league-phase' -> 'Fase de Liga'."""
+    parts = []
+    for p in (slug or "").split("---"):
+        w = re.sub(r"^\d{4}\s+", "", p.replace("-", " ").strip())
+        parts.append(PHASES.get(w.lower()) or (w[:1].upper() + w[1:]))
+    return " · ".join(x for x in parts if x) or "Fase"
 
 
 def _is_placeholder(e):
@@ -292,18 +423,27 @@ def _is_placeholder(e):
 def _events(lid):
     evs = [e for e in season(lid).get("events", []) if e.get("competitions")]
     if LEAGUES[lid]["league"]:
-        # Em pontos corridos cada mandante x visitante acontece uma vez. Um jogo adiado às vezes
-        # fica duplicado (evento antigo "adiado" + evento remarcado): mantém só o válido.
-        best: dict[tuple, dict] = {}
-        rank = lambda e: (0 if (e.get("status") or {}).get("type", {}).get("name") in ("STATUS_POSTPONED", "STATUS_CANCELED") else 1, e.get("date", ""))
-        for e in evs:
-            if _is_placeholder(e):
-                continue
-            comp = e["competitions"][0]["competitors"]
-            key = tuple(c["team"]["id"] for c in sorted(comp, key=lambda c: c.get("homeAway") != "home"))
-            if key not in best or rank(e) > rank(best[key]):
-                best[key] = e
-        evs = list(best.values())
+        # liga com mais de um torneio no ano (Apertura/Clausura) ou com playoffs: só a etapa de pontos em vigor
+        stg = _table_stage(lid)
+        if stg and len(_stages(lid)) > 1:
+            evs = [e for e in evs if _event_stage.get(int(e["id"])) == stg["type"]]
+        off = lambda e: (e.get("status") or {}).get("type", {}).get("name") in ("STATUS_POSTPONED", "STATUS_CANCELED")
+        key = lambda e: tuple(c["team"]["id"] for c in sorted(e["competitions"][0]["competitors"], key=lambda c: c.get("homeAway") != "home"))
+        evs = [e for e in evs if not _is_placeholder(e)]
+        if LEAGUES[lid].get("rr", True):
+            # Em pontos corridos cada mandante x visitante acontece uma vez. Um jogo adiado às vezes
+            # fica duplicado (evento antigo "adiado" + evento remarcado): mantém só o válido.
+            best: dict[tuple, dict] = {}
+            rank = lambda e: (0 if off(e) else 1, e.get("date", ""))
+            for e in evs:
+                if key(e) not in best or rank(e) > rank(best[key(e)]):
+                    best[key(e)] = e
+            evs = list(best.values())
+        else:
+            # MLS, Argentina...: o mesmo mandante pode receber o mesmo rival duas vezes. Só tira o evento
+            # adiado/cancelado quando o mesmo confronto tem um evento válido (o remarcado).
+            valid = {key(e) for e in evs if not off(e)}
+            evs = [e for e in evs if not (off(e) and key(e) in valid)]
     return sorted(evs, key=lambda e: e.get("date", ""))
 
 
@@ -385,7 +525,21 @@ def phases(lid) -> list[dict]:
         tipo = "grupos" if "group" in label.lower() or "league" in label.lower() else "mata-mata"
         out.append({"fase_id": lid * 1000 + (_int(e.get("value"), len(out) + 1)), "nome": _phase_name(label), "tipo": tipo,
                     "start": _parse_dt(e.get("startDate")), "end": _parse_dt(e.get("endDate"))})
+    if out:
+        return out
+    # sem calendário (estaduais): as fases vêm das etapas que a ESPN marca em cada jogo
+    for i, s in enumerate(_stages(lid), 1):
+        out.append({"fase_id": lid * 1000 + i, "nome": _stage_label(s["slug"]), "stype": s["type"],
+                    "tipo": "mata-mata" if KO_RX.search(s["slug"]) else "grupos",
+                    "start": s["start"], "end": s["end"] + timedelta(hours=6) if s["end"] else None})
     return out
+
+
+def _phase_of_match(ph_list, m):
+    """Fase de uma partida: pela etapa da ESPN quando a fase veio dela; senão, pela data."""
+    st = _event_stage.get(m["partida_id"] - OFFSET)
+    p = next((p for p in ph_list if p.get("stype") is not None and p["stype"] == st), None)
+    return p or (_phase_of(ph_list, _mdt(m)) if m["data_realizacao_iso"] else None)
 
 
 def _phase_of(ph_list, dt):
@@ -420,8 +574,13 @@ def campeonato(lid: int, detail=False) -> dict:
     lg = (sb.get("leagues") or [{}])[0]
     logo = next((l["href"] for l in lg.get("logos", []) if "default" in l.get("rel", [])), None) or (lg.get("logos") or [{}])[0].get("href")
     logo_dark = next((l["href"] for l in lg.get("logos", []) if "dark" in l.get("rel", [])), None)
+    https = lambda u: u.replace("http://", "https://", 1) if u else u  # alguns logos vêm em http e a CSP só aceita https
+    logo, logo_dark = https(logo), https(logo_dark)
     matches, rmap = _all_matches(lid)
-    year = (lg.get("season") or {}).get("year") or _year()
+    year = sb.get("season_year") or _year()
+    tname = sb.get("season_name") or str(year)  # "2026" ou "2026-27"
+    if L["league"] and len(_table_stages(lid)) > 1 and _table_stage(lid):  # Apertura/Clausura: diz qual está valendo
+        tname = f"{tname} · {_stage_label(_table_stage(lid)['slug'])}"
     now = datetime.now(timezone.utc)
     statuses = [m["status"] for m in matches]
     status = "finalizado" if statuses and all(s in ("finalizado", "cancelado") for s in statuses) else "andamento"
@@ -429,10 +588,10 @@ def campeonato(lid: int, detail=False) -> dict:
     current = ph[0] if L["league"] else (_phase_of(ph, now) or next((p for p in reversed(ph) if p["start"] and p["start"] <= now), ph[0] if ph else None))
     out = {
         "campeonato_id": lid, "nome": L["nome"], "slug": _slug(L["nome"]), "nome_popular": L["popular"],
-        "edicao_atual": {"edicao_id": lid * 10000 + year, "temporada": str(year), "nome": f"{L['nome']} {year}", "nome_popular": f"{L['popular']} {year}", "slug": _slug(f"{L['nome']} {year}")},
+        "edicao_atual": {"edicao_id": lid * 10000 + year, "temporada": tname, "nome": f"{L['nome']} {tname}", "nome_popular": f"{L['popular']} {tname}", "slug": _slug(f"{L['nome']} {tname}")},
         "fase_atual": _phase_ref(current, lid) if current else None,
         "rodada_atual": None,
-        "status": status, "tipo": L["tipo"], "logo": logo, "logo_escuro": logo_dark, "regiao": L["regiao"],
+        "status": status, "tipo": L["tipo"], "logo": logo, "logo_escuro": logo_dark, "regiao": L["regiao"], "pais": L.get("pais"),
         "fonte": "espn",
     }
     if L["league"] and matches:
@@ -447,14 +606,24 @@ def campeonato(lid: int, detail=False) -> dict:
     return out
 
 
+def _safe(fn, *a):
+    try:
+        return fn(*a)
+    except Exception:  # noqa: BLE001 — liga indisponível agora: segue com as outras
+        return None
+
+
+def warm(lids=None):
+    """Carrega as temporadas em paralelo (cada uma pesa ~0,4 MB e leva ~1 s na ESPN)."""
+    lids = list(lids or LEAGUE_ORDER)
+    with ThreadPoolExecutor(8) as ex:
+        list(ex.map(lambda l: _safe(season, l), lids))
+
+
 def campeonatos() -> list[dict]:
-    out = []
-    for lid in LEAGUE_ORDER:
-        try:
-            out.append(campeonato(lid))
-        except Exception:  # liga indisponível agora: segue com as outras
-            continue
-    return out
+    warm()
+    with ThreadPoolExecutor(8) as ex:
+        return [c for c in ex.map(lambda l: _safe(campeonato, l), LEAGUE_ORDER) if c]
 
 
 def rodadas(lid) -> list[dict]:
@@ -490,7 +659,9 @@ def fase(lid, fid) -> dict:
     if not ph:
         raise NotFound("fase")
     matches, _ = _all_matches(lid)
-    if ph["start"]:
+    if ph.get("stype") is not None:  # fase montada pelas etapas da ESPN: os jogos daquela etapa
+        ms = [m for m in matches if _event_stage.get(m["partida_id"] - OFFSET) == ph["stype"]]
+    elif ph["start"]:
         ms = [m for m in matches if m["data_realizacao_iso"] and ph["start"] <= _mdt(m) < ph["end"]]
     else:
         ms = matches
@@ -522,6 +693,9 @@ def _form(lid) -> dict[int, list[str]]:
 
 def _zone(lid, pos, group_mode):
     if group_mode:
+        n = LEAGUES[lid].get("grupo_zona")  # conferências da MLS, zonas da Argentina
+        if n:
+            return "classificados" if pos <= n else None
         return "classificados" if pos <= 2 else "sul-americana" if pos == 3 and lid == 7 else None
     for lo, hi, z in ZONES.get(lid, []):
         if lo <= pos <= hi:
@@ -530,7 +704,7 @@ def _zone(lid, pos, group_mode):
 
 
 def tabela(lid):
-    data = _get(f"{STANDINGS}/{LEAGUES[lid]['slug']}/standings?season={_year()}", 120)
+    data = _get(f"{STANDINGS}/{LEAGUES[lid]['slug']}/standings?season={season(lid)['season_year']}", 120)
     groups = data.get("children") or []
     form = _form(lid)
 
@@ -589,24 +763,26 @@ def assistencias(lid):
 
 
 # ---------------------------------------------------------------- ao vivo / partida
-def ao_vivo(exclude: set[int] = frozenset()):
+def _live_of(lid):
+    sb = _safe(_get, f"{SITE}/{LEAGUES[lid]['slug']}/scoreboard", 15) or {}
     out = []
-    for lid in LEAGUE_ORDER:
-        if lid in exclude:
-            continue
-        try:
-            sb = _get(f"{SITE}/{LEAGUES[lid]['slug']}/scoreboard", 15)
-        except Exception:
-            continue
-        for e in sb.get("events", []):
-            if (e.get("status") or {}).get("type", {}).get("state") == "in":
-                rmap = rounds_map(lid) if LEAGUES[lid]["league"] else None
-                out.append(match(e, lid, rmap))
+    for e in sb.get("events", []):
+        if (e.get("status") or {}).get("type", {}).get("state") == "in":
+            rmap = _safe(rounds_map, lid) if LEAGUES[lid]["league"] else None
+            out.append(match(e, lid, rmap))
     return out
+
+
+def ao_vivo(exclude: set[int] = frozenset()):
+    """Jogos rolando agora em todas as ligas (uma consulta pequena por liga, em paralelo)."""
+    lids = [l for l in LEAGUE_ORDER if l not in exclude]
+    with ThreadPoolExecutor(8) as ex:
+        return [m for ms in ex.map(_live_of, lids) for m in ms]
 
 
 def _league_for_event(eid):
     if eid not in _event_league:
+        warm()
         for lid in LEAGUE_ORDER:
             try:
                 season(lid)
@@ -868,6 +1044,7 @@ def bridge(m: dict, code: str, detail: bool = True) -> dict:
 # ---------------------------------------------------------------- times / atletas
 def _team_league(tid_espn: str) -> int:
     best = None
+    warm()
     for lid in LEAGUE_ORDER:
         try:
             for e in _events(lid):
@@ -899,6 +1076,7 @@ def time_campeonatos(tid: int) -> dict:
     t_espn = str(tid - OFFSET)
     info = None
     camps = []
+    warm()
     for lid in LEAGUE_ORDER:
         try:
             evs = _events(lid)
@@ -973,7 +1151,7 @@ def partidas_campeonato(lid) -> dict:
     else:
         ph = phases(lid)
         for m in matches:
-            p = _phase_of(ph, _mdt(m)) if m["data_realizacao_iso"] else None
+            p = _phase_of_match(ph, m)
             out.setdefault(_slug(p["nome"]) if p else "outras", {}).setdefault("jogos", []).append(m)
     return {"campeonato": _camp_ref(lid), "partidas": out}
 
@@ -981,6 +1159,7 @@ def partidas_campeonato(lid) -> dict:
 def _team_matches(tid: int):
     t_espn = str(tid - OFFSET)
     found = []
+    warm()
     for lid in LEAGUE_ORDER:
         try:
             evs = _events(lid)
@@ -1033,7 +1212,7 @@ def noticias(q: dict) -> dict:
         params += f"&team={tid - OFFSET}"
     data = _get(f"{SITE}/{LEAGUES[lid]['slug']}/news?{params}", 600)
     known = {}
-    for l in LEAGUE_ORDER:  # escudos/nomes dos times citados
+    for l in CORE:  # escudos/nomes dos times citados
         try:
             for e in _events(l):
                 for c in e["competitions"][0]["competitors"]:

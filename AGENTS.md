@@ -7,7 +7,11 @@ europeias), NBA e Fórmula 1. Interface e textos em **português do Brasil**.
 - `server.py` — ponto de entrada (`python server.py [porta]`, padrão 8080). Chama `placar.server.main`.
 - `placar/` — backend em Python **só com a biblioteca padrão** (sem frameworks):
   - `server.py` — HTTP, rotas `/api/...`, cache, SSE (`/api/stream`), CSP, agendador em segundo plano.
-  - `sources/` — fontes de dados: `espn.py` (ESPN, rodadas reconstruídas 1–38), `footballdata.py`, `news_rss.py`, `transfermarkt.py`, `stadium.py` (estádio via Wikipédia/Wikidata, cache de 30 dias).
+    `/api/agenda` junta numa resposta os jogos de todos os campeonatos (de 21 dias atrás a 30 à frente) para a página inicial:
+    não volte a montar isso no navegador (eram ~200 chamadas e estourava o limite por visitante).
+  - `sources/` — fontes de dados: `espn.py` (ESPN, grátis e sem chave: Brasil, Conmebol e ~30 campeonatos extras com IDs 201+ —
+    estaduais, ligas sul-americanas, Europa League, Conference, segundas divisões, copas nacionais, MLS, Liga MX, Arábia, Japão,
+    Liga das Nações; temporada pelo `season.year` de cada jogo, etapas (Apertura/Clausura, fases) pelo `season.type`; rodadas reconstruídas), `footballdata.py`, `news_rss.py`, `transfermarkt.py`, `stadium.py` (estádio via Wikipédia/Wikidata, cache de 30 dias).
   - `sports/` — `nba.py` (ESPN), `f1.py` (Jolpica/Ergast + ESPN ao vivo), `openf1.py` (análise oficial de corrida, sessões encerradas).
   - `core/` — `prob.py` (probabilidades), `auth.py` (contas, sessões, captcha PoW), `identity.py`, `news_filter.py`.
   - `ai/` — IA: `client.py` (Gemini padrão; Anthropic se `ANTHROPIC_API_KEY`; Ollama opcional), `insights.py`, `assistant.py`, `news.py`, `foryou.py`.
