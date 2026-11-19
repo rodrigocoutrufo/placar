@@ -112,8 +112,12 @@ export function ScrollRow({ children, className = '', step = 0.8, trackRef = nul
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
-    // roda do mouse vertical vira rolagem lateral
-    const wheel = (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && el.scrollWidth > el.clientWidth) { e.preventDefault(); el.scrollBy({ left: e.deltaY }); } };
+    // A roda normal rola a PÁGINA (não prende a pessoa na faixa). Para o lado: setas, arrastar, gesto lateral
+    // do touchpad (o navegador já faz) ou Shift + roda (feito aqui, porque nem todo navegador faz sozinho).
+    const wheel = (e) => {
+      if (!e.shiftKey || Math.abs(e.deltaY) <= Math.abs(e.deltaX) || el.scrollWidth <= el.clientWidth) return;
+      e.preventDefault(); el.scrollBy({ left: e.deltaY });
+    };
     el.addEventListener('wheel', wheel, { passive: false });
     return () => { ro.disconnect(); el.removeEventListener('wheel', wheel); };
   }, [children]); // eslint-disable-line react-hooks/exhaustive-deps
