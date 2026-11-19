@@ -3,10 +3,21 @@
  * - /api: rede primeiro; sem conexão, devolve o último dado salvo.
  * Imagens de outros domínios (escudos, fotos) ficam com o cache normal do navegador: a política de
  * segurança (CSP connect-src 'self') não deixa o service worker buscá-las. */
-const VERSION = 'placar-v31'; // prefixo antigo mantido: só o número sobe
+const VERSION = 'placar-v32'; // prefixo antigo mantido: só o número sobe
 const APP = `${VERSION}-app`;
 const DATA = `${VERSION}-data`;
 const MAX_DATA = 150;
+
+// toque na notificação (gol, fim de jogo, NBA, F1): abre ou foca o site na partida
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || '/';
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+    const w = list.find((c) => new URL(c.url).origin === self.location.origin);
+    if (w) { w.navigate(url).catch(() => {}); return w.focus(); }
+    return self.clients.openWindow(url);
+  }));
+});
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(APP).then((c) => c.addAll(['/', '/manifest.webmanifest', '/icons/icon-192.png'])).then(() => self.skipWaiting()));

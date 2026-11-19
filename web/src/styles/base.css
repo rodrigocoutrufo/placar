@@ -331,3 +331,49 @@ input { font: inherit; color: inherit; }
 
 /* logo de campeonato sem versão para fundo escuro: aparece todo branco (o servidor marca com "#mono") */
 img[src$="#mono"] { filter: brightness(0) invert(1); }
+
+/* avisos: começo/intervalo/fim (neutro), NBA (laranja), F1 (vermelho) */
+.goal { position: relative; padding-right: 34px; }
+.goal.k-periodo { border-left-color: var(--acc); }
+.goal.k-periodo b, .goal.k-nba b, .goal.k-f1 b { font-size: 19px; }
+.goal.k-nba { border-left-color: #ff7a1a; }
+.goal.k-f1 { border-left-color: #ff1e1e; }
+.goal .t-logo { width: 40px; height: 40px; object-fit: contain; }
+.goal .t-x { position: absolute; top: 6px; right: 8px; border: 0; background: none; color: rgba(255, 255, 255, .5); font-size: 18px; line-height: 1; cursor: pointer; }
+.goal .t-x:hover { color: #fff; }
+
+/* sino "Avisar" (nos cabeçalhos escuros de campeonato, time, NBA e F1) e painel de notificações */
+.bell { justify-self: start; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; margin-top: 8px; border-radius: 4px; border: 1px solid var(--rule2); background: var(--pan); color: var(--ink); font: 700 15px var(--fc); text-transform: uppercase; letter-spacing: .05em; cursor: pointer; width: max-content; }
+.bell .ico { width: 18px; height: 18px; }
+.bell.on { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); }
+.bell.on-dark:not(.on) { background: rgba(255, 255, 255, .12); border-color: rgba(255, 255, 255, .25); color: #fff; }
+.bell.on-dark:not(.on):hover { background: rgba(255, 255, 255, .2); }
+.hero-acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.hero-acts .follow, .hero-acts .bell { margin-top: 6px; }
+.ibtn.has-notif { position: relative; }
+.ibtn.has-notif::after { content: ""; position: absolute; top: 8px; right: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--acc); }
+.np-back { position: fixed; inset: 0; z-index: 210; background: rgba(4, 5, 7, .55); backdrop-filter: blur(3px); display: flex; justify-content: flex-end; }
+.np { width: min(420px, 100%); height: 100%; overflow: auto; background: var(--pan); color: var(--ink); border-left: 1px solid var(--rule2); box-shadow: -20px 0 60px rgba(0, 0, 0, .35); }
+.np-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; background: var(--pan); border-bottom: 1px solid var(--rule); font: 800 20px var(--fc); text-transform: uppercase; }
+.np-body { display: grid; gap: 4px; padding: 6px 18px 24px; }
+.np-body section { display: grid; gap: 8px; padding: 14px 0; border-bottom: 1px solid var(--rule); }
+.np-body section:last-child { border-bottom: 0; }
+.np-body h3 { display: flex; align-items: center; gap: 8px; margin: 0; font: 700 13px var(--fc); text-transform: uppercase; letter-spacing: .1em; color: var(--mute); }
+.np-sw { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; }
+.np-sw span { display: grid; gap: 1px; }
+.np-sw b { font-weight: 600; font-size: 14.5px; }
+.np-sw small { color: var(--mute); font-size: 12px; }
+.sw { position: relative; flex: none; width: 42px; height: 24px; border: 0; border-radius: 999px; background: var(--pan3); cursor: pointer; transition: background .2s; }
+.sw i { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .3); transition: transform .2s cubic-bezier(.22, 1, .36, 1); }
+.sw.on { background: var(--acc); }
+.sw.on i { transform: translateX(18px); }
+.np-note { margin: 0; color: var(--mute); font-size: 12.5px; line-height: 1.45; }
+.np-ask { justify-content: center; height: 42px; background: var(--acc); border-color: var(--acc); color: var(--acc-ink); cursor: pointer; }
+.np-ask .ico { width: 18px; height: 18px; }
+.np-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.np-item { display: inline-flex; align-items: center; gap: 7px; padding: 4px 6px 4px 10px; border: 1px solid var(--rule2); border-radius: 999px; font-size: 13.5px; }
+.np-item a:hover { color: var(--hl); }
+.np-item.off { opacity: .55; }
+.np-item button { width: 24px; height: 24px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--mute); font-size: 16px; cursor: pointer; }
+.np-item button:hover { background: var(--pan2); color: var(--ink); }
+.np-item .np-bell .ico { width: 15px; height: 15px; }

@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useLive } from '../lib/live.js';
 import { useApi } from '../lib/api.js';
 import { useComps, useAgenda, featured, compOf, compRank } from '../lib/data.js';
-import { dayKey, parseDate, flattenTable, isLeague, fmtDT, timeAgo, parseISO } from '../lib/format.js';
+import { dayKey, parseDate, flattenTable, isLeague, isLive, fmtDT, timeAgo, parseISO } from '../lib/format.js';
+import { followsComp, followsTeam } from '../lib/notify.js';
 import { compTheme, LOGO } from '../lib/themes.js';
 import { Taste, getFavs, useStoreVersion } from '../lib/store.js';
 import { Panel, Head, Skel, Empty, Stagger, Item, CompLogo, Crest, Countdown, LiveDot, Icon, ScrollRow, ease } from '../components/ui.jsx';
@@ -18,6 +19,7 @@ export default function Home() {
   const [params, setParams] = useSearchParams();
   const today = dayKey(new Date());
   const filter = params.get('f') || 'all';
+  const [manual, setManual] = useState({}); // campeonatos que a pessoa abriu/fechou na mão
 
   const liveMap = useMemo(() => new Map(live.map((p) => [p.partida_id, p])), [live]);
   const merged = useMemo(() => (agenda || []).map((p) => liveMap.get(p.partida_id) || p), [agenda, liveMap]);
@@ -49,6 +51,22 @@ export default function Home() {
   });
   const order = (id) => { const i = comps.findIndex((c) => c.campeonato_id === id); return compRank(id, i < 0 ? 99 : i); };
   const blocks = [...groups.entries()].sort((a, b) => order(a[0]) - order(b[0])).map(([, g]) => g);
+  // dia cheio (muitos campeonatos): abre só o que importa para a pessoa; o resto vira uma linha por campeonato
+  const many = filter === 'all' && blocks.length > 6;
+  const important = (g) => {
+    const id = +g.c.campeonato_id;
+    return TOP.has(id) || followsComp(id) || Taste.score('c', id) >= 3 || g.ps.some((p) => isLive(p)
+      || favIds.has(+p.time_mandante.time_id) || favIds.has(+p.time_visitante.time_id) || followsTeam(p.time_mandante) || followsTeam(p.time_visitante));
+  };
+  const auto = new Map(blocks.map((g) => [g.c.campeonato_id || g.c.nome, !many || important(g)]));
+  const isOpen = (id) => (manual[id] != null ? manual[id] : auto.get(id) !== false);
+  const toggle = (id) => setManual((m) => ({ ...m, [id]: !isOpen(id) }));
+  const allOpen = blocks.every((g) => isOpen(g.c.campeonato_id || g.c.nome));
+  const setAll = (v) => setManual(Object.fromEntries(blocks.map((g) => [g.c.campeonato_id || g.c.nome, v])));
+  const jump = (id) => {
+    setManual((m) => ({ ...m, [id]: true }));
+    requestAnimationFrame(() => { const el = document.getElementById(`cb-${id}`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  };
   const setQ = (k, v) => { const n = new URLSearchParams(params); if (v == null) n.delete(k); else n.set(k, v); setParams(n, { replace: true }); };
 
   return (
@@ -91,8 +109,23 @@ export default function Home() {
                 <button key={k} className={`chip ${filter === k ? 'on' : ''}`} onClick={() => setQ('f', k === 'all' ? null : k)}>{k === 'live' && <LiveDot />}{l}</button>
               ))}
             </div>
+            {many && (
+              <div className="cb-jump">
+                <ScrollRow><div className="cb-jump-row">
+                  {blocks.map((g) => {
+                    const id = g.c.campeonato_id || g.c.nome;
+                    return (
+                      <button type="button" key={id} className={g.ps.some((p) => isLive(p)) ? 'live' : ''} onClick={() => jump(id)} title={g.c.nome_popular}>
+                        <CompLogo c={g.c} size={18} dark />{g.c.nome_popular || g.c.nome}<em>{g.ps.length}</em>
+                      </button>
+                    );
+                  })}
+                </div></ScrollRow>
+                <button type="button" className="cb-all" onClick={() => setAll(!allOpen)}>{allOpen ? 'Recolher' : 'Abrir todos'}</button>
+              </div>
+            )}
             {!agenda && filter !== 'live' ? <div className="pad"><Skel h={300} /></div>
-              : blocks.length ? <CompBlocks key={`${sel}-${filter}`} groups={blocks} />
+              : blocks.length ? <CompBlocks key={`${sel}-${filter}`} groups={blocks} isOpen={isOpen} onToggle={many ? toggle : null} />
                 : <Empty>{filter === 'live' ? 'Nenhum jogo em andamento agora.' : filter === 'mine' ? 'Nenhum jogo dos seus times neste dia.' : 'Nenhum jogo neste dia.'}</Empty>}
           </Panel>
         </div>
@@ -106,6 +139,9 @@ export default function Home() {
     </>
   );
 }
+
+// campeonatos que sempre aparecem abertos no "Todos": Brasil, Conmebol, Champions e as 5 grandes ligas
+const TOP = new Set([10, 14, 2, 7, 9, 106, 101, 102, 103, 104, 105]);
 
 /* faixa de campeonatos: cada um com a sua cor e o logo oficial */
 function CompStrip({ comps }) {

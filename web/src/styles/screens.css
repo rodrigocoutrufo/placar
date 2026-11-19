@@ -105,6 +105,16 @@
 .reg-sub { display: flex; align-items: center; gap: 10px; margin: 0; font: 700 14px var(--fc); text-transform: uppercase; letter-spacing: .1em; color: var(--ink2); }
 .reg-sub::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
 .poster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; perspective: 1200px; }
+/* estaduais e regionais: cartazes baixos (muitos campeonatos curtos não poluem a página) */
+.poster-grid.compact { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.poster-grid.compact .poster-in { height: 150px; padding: 14px; }
+.poster-grid.compact .poster-logo { top: 14px; left: auto; right: 14px; width: 54px; height: 54px; transform: translateZ(30px); }
+.poster-grid.compact .poster-wm { display: none; }
+.poster-grid.compact .poster-txt b { font-size: 22px; }
+.reg-fold { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border: 1px dashed var(--rule2); border-radius: var(--r); color: var(--mute); font-size: 14px; }
+.reg-fold .reg-fold-logos { display: flex; gap: 8px; }
+.reg-fold .reg-fold-logos img { width: 26px; height: 26px; object-fit: contain; }
+.reg-fold button { cursor: pointer; }
 .poster { border-radius: 8px; }
 .poster-in { position: relative; display: flex; flex-direction: column; justify-content: flex-end; height: 300px; padding: 20px; border-radius: 8px; overflow: hidden; color: #fff; isolation: isolate;
   background: linear-gradient(160deg, var(--m2), var(--m1) 75%); box-shadow: 0 18px 40px -22px rgba(0, 0, 0, .7); }
@@ -514,3 +524,25 @@ a.fchip:hover { border-color: var(--hl); color: var(--hl); }
   .ns-top { grid-template-columns: 1fr; }
   .ns-top .lead-story { grid-row: auto; min-height: 320px; }
 }
+
+/* ---------- página inicial: blocos de campeonato recolhíveis e atalhos ---------- */
+.cblock-head { padding-right: 8px; }
+.cb-name { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.cb-name:hover b { color: var(--hl); }
+.cb-tog { width: 34px; height: 34px; display: grid; place-items: center; margin-left: 4px; border: 0; border-radius: 6px; background: transparent; color: var(--mute); font-size: 20px; line-height: 1; cursor: pointer; }
+.cb-tog:hover { background: var(--pan2); color: var(--ink); }
+.cb-tog span { display: block; transform-origin: 50% 40%; }
+.cb-body { overflow: hidden; }
+.cblock.shut .cblock-head { border-bottom: 0; }
+.cblock.shut .cblock-head b { font-size: 16px; }
+.cblock.shut .cb-logo { width: 28px; height: 28px; }
+.cb-jump { display: flex; align-items: center; gap: 6px; padding: 10px 16px; border-bottom: 1px solid var(--rule); }
+.cb-jump .srow { flex: 1; min-width: 0; }
+.cb-jump-row { display: flex; gap: 6px; width: max-content; }
+.cb-jump-row button { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px 0 6px; border: 1px solid var(--rule); border-radius: 999px; background: transparent; color: var(--ink2); font: 700 12.5px/1 var(--fc); text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; cursor: pointer; }
+.cb-jump-row button:hover { border-color: var(--rule2); color: var(--ink); }
+.cb-jump-row button em { font-style: normal; color: var(--mute); }
+.cb-jump-row button.live { border-color: var(--live); }
+.cb-all { flex: none; height: 30px; padding: 0 12px; border: 1px solid var(--rule2); border-radius: 999px; background: transparent; color: var(--ink2); font: 700 12.5px/1 var(--fc); text-transform: uppercase; cursor: pointer; }
+.cb-all:hover { color: var(--ink); border-color: var(--ink2); }
+.cblock { scroll-margin-top: calc(var(--hh) + 56px); }

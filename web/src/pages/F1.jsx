@@ -2,6 +2,8 @@ import { Link, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApi } from '../lib/api.js';
 import { useOtherLive } from '../lib/live.js';
+import { getNotif, setNotif } from '../lib/notify.js';
+import { Bell } from '../components/Notify.jsx';
 import { LOGO } from '../lib/themes.js';
 import { parseISO, fmtDT } from '../lib/format.js';
 import { Panel, Head, Skel, Empty, Tabs, Stagger, Item, Countdown, LiveDot, Watch, CountUp, ease } from '../components/ui.jsx';
@@ -33,6 +35,7 @@ export default function F1() {
               <motion.small initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>Etapa {nx.rodada} de {d.etapas} · {nx.cidade}</motion.small>
               <motion.h1 initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25, duration: 0.5, ease }}>{nx.nome}</motion.h1>
               <span className="pw-circ">{nx.circuito}</span>
+              <Bell on={() => getNotif().f1} onClick={() => setNotif({ f1: !getNotif().f1 })} label="Avisar sessões" onLabel="Avisando sessões" className="on-dark" />
             </div>
           )}
           {nextSession && parseISO(nextSession.data_iso) > now && (

@@ -4,10 +4,11 @@ import json
 import re
 
 from .common import NotFound, stats
+from .f1 import _espn_weekend as f1_weekend
 from .f1 import f1_driver, f1_live, f1_overview, f1_race, f1_race_analysis, f1_team
 from .nba import nba_game, nba_live, nba_player, nba_scoreboard, nba_standings, nba_team
 
-__all__ = ["handle", "live_summary", "stats"]
+__all__ = ["handle", "live_summary", "stats", "nba_scoreboard", "f1_weekend"]
 
 
 # ================================================================ rotas

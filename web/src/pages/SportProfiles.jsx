@@ -5,12 +5,14 @@ import { useApi } from '../lib/api.js';
 import { Taste } from '../lib/store.js';
 import { LOGO } from '../lib/themes.js';
 import { fmtDT, hexA } from '../lib/format.js';
+import { Bell } from '../components/Notify.jsx';
+import { followsNbaTeam, toggleNbaTeam } from '../lib/notify.js';
 import { Panel, Head, Skel, Empty, Tabs, Stagger, Item, CountUp, Reveal, ease } from '../components/ui.jsx';
 
 const flag = (src, w = 22) => (src ? <img className="flag" src={src} alt="" width={w} /> : null);
 
 // cabeçalho de perfil nas cores do time/equipe
-function ProfileHero({ color, kind, photo, logo, eyebrow, title, sub, num, kpis }) {
+function ProfileHero({ color, kind, photo, logo, eyebrow, title, sub, num, kpis, action = null }) {
   return (
     <section className={`club-hero sport ${kind}`} style={{ '--c1': color || '#1d2430', '--c2': '#07080a' }}>
       <span className="ch-stripes" />
@@ -29,6 +31,7 @@ function ProfileHero({ color, kind, photo, logo, eyebrow, title, sub, num, kpis 
           <small>{eyebrow}</small>
           <motion.h1 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.6, ease }}>{title}</motion.h1>
           {sub && <div className="to-meta"><span>{sub}</span></div>}
+          {action}
         </div>
       </div>
       {kpis && (
@@ -77,6 +80,7 @@ export function NBATeam() {
   return (
     <>
       <ProfileHero color={t.cor} logo={t.logo} eyebrow={<><img src={LOGO.nba} alt="" height="18" style={{ display: 'inline', verticalAlign: '-3px' }} /> {t.resumo}</>} title={t.nome} sub={[t.ginasio, t.local].filter(Boolean).join(' · ')}
+        action={<Bell on={() => followsNbaTeam(id)} onClick={() => toggleNbaTeam({ id, nome: t.nome, logo: t.logo })} className="on-dark" />}
         kpis={[[`${c.v}-${c.d}`, 'Campanha', c.posicao ? `${c.posicao}º na conferência` : ''], [c.pontos_pro, 'Pontos por jogo'], [c.pontos_contra, 'Sofridos por jogo'], [`${c.saldo > 0 ? '+' : ''}${c.saldo}`, 'Saldo médio'], c.sequencia ? [c.sequencia, 'Sequência'] : null, t.casa_fora ? [t.casa_fora.casa, 'Em casa', `fora ${t.casa_fora.fora}`] : null]} />
       <div className="sticky-tabs"><nav className="tabs">{[['visao', 'Visão geral'], ['jogos', 'Jogos'], ['elenco', 'Elenco']].map(([k, l]) => <button key={k} className={`tab ${tab === k ? 'on' : ''}`} onClick={() => go(k)}>{l}{tab === k && <motion.span layoutId="tab-nbat" className="tab-ind" />}</button>)}</nav></div>
       <AnimatePresence mode="wait">

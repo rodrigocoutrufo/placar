@@ -9,6 +9,8 @@ import { flattenTable, isLeague, isLive, parseDate, fmtTime, liveLabel, kitColor
 import { mvNumber, regTeam } from '../lib/registry.js';
 import { Panel, Head, Skel, Empty, ErrorBox, Tabs, Stagger, Item, Crest, CompLogo, CountUp, LiveDot, Icon, ease } from '../components/ui.jsx';
 import { StadiumPanel } from '../components/Stadium.jsx';
+import { Bell } from '../components/Notify.jsx';
+import { followsTeam, toggleTeam } from '../lib/notify.js';
 import { MatchRow, Standings, RankList } from '../components/match.jsx';
 
 const CAT_ORDER = ['Mundial', 'Continental', 'Liga nacional', 'Copa nacional', 'Estadual', 'Outros'];
@@ -68,10 +70,13 @@ export default function Team() {
             )}
             <motion.h1 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.6, ease }}>{team.nome_popular}</motion.h1>
             {facts.length > 0 && <div className="to-meta">{facts.map((f) => <span key={f}>{f}</span>)}</div>}
-            <motion.button className={`follow ${fav ? 'on' : ''}`} onClick={() => toggleFav(team)} whileTap={{ scale: 0.92 }}>
-              <motion.span key={String(fav)} initial={{ scale: 0.4, rotate: -90 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 400, damping: 15 }}>{Icon.star}</motion.span>
-              {fav ? 'Seguindo' : 'Seguir'}
-            </motion.button>
+            <div className="hero-acts">
+              <motion.button className={`follow ${fav ? 'on' : ''}`} onClick={() => toggleFav(team)} whileTap={{ scale: 0.92 }}>
+                <motion.span key={String(fav)} initial={{ scale: 0.4, rotate: -90 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 400, damping: 15 }}>{Icon.star}</motion.span>
+                {fav ? 'Seguindo' : 'Seguir'}
+              </motion.button>
+              <Bell on={() => followsTeam(team)} onClick={() => toggleTeam(team)} className="on-dark" />
+            </div>
           </div>
         </div>
       </section>

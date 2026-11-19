@@ -19,7 +19,7 @@ const COMP = [
   { re: /argentina/, m1: '#04101d', m2: '#0d3150', acc: '#75c8ff', accL: '#1a78bf', ink: '#04121f', pat: 'diag' },
   { re: /saudita/, m1: '#021409', m2: '#06381c', acc: '#22d36b', accL: '#0c8a43', ink: '#02170a', pat: 'hex' },
   { re: /j-?league/, m1: '#150306', m2: '#420a12', acc: '#ff4d5e', accL: '#c71a2b', ink: '#fff', pat: 'dots' },
-  { re: /paulist|carioca|mineiro|gauch/, m1: '#0a0a0a', m2: '#2a2a2a', acc: '#f4f4f4', accL: '#333333', ink: '#0a0a0a', pat: 'diag' },
+  { re: /paulist|carioca|mineiro|gauch|nordeste/, m1: '#0a0a0a', m2: '#2a2a2a', acc: '#f4f4f4', accL: '#333333', ink: '#0a0a0a', pat: 'diag' },
   { re: /copa do rei|copa da (italia|alemanha|franca)/, m1: '#120a02', m2: '#3a2408', acc: '#f2b43a', accL: '#9a6a00', ink: '#1a1000', pat: 'stars' },
   { re: /champions/, m1: '#020722', m2: '#0a1d6e', acc: '#3f7cff', accL: '#1f4fd8', ink: '#fff', pat: 'stars' },
   { re: /premier/, m1: '#18001e', m2: '#3d0049', acc: '#ff2882', accL: '#c4006a', ink: '#fff', pat: 'diag' },

@@ -7,6 +7,7 @@ import { useModeState } from '../lib/mode.js';
 import { account, toggleTheme, useStoreVersion } from '../lib/store.js';
 import { Crest, Icon, LiveDot, LiveMinute, ease } from './ui.jsx';
 import { LOGO } from '../lib/themes.js';
+import { HeaderBell } from './Notify.jsx';
 import { isLive } from '../lib/format.js';
 import { useSuggest } from '../lib/registry.js';
 
@@ -73,6 +74,7 @@ export function Header() {
             )}
           </AnimatePresence>
         </form>
+        <HeaderBell />
         <button className="ibtn" onClick={toggleTheme} aria-label="Alternar tema" title="Tema claro/escuro">{dark ? Icon.sun : Icon.moon}</button>
         <Link className="ibtn user" to={u ? '/conta' : '/entrar'} title={u ? `Sua conta (@${u.usuario})` : 'Entrar'}>
           {u ? (u.avatar ? <img src={u.avatar} alt="" referrerPolicy="no-referrer" /> : <span className="u-ini">{String(u.nome || '?').split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase()}</span>) : Icon.user}
@@ -148,18 +150,38 @@ export function Footer() {
 /* aviso de gol */
 export function GoalToasts() {
   const goals = useGoals();
+  const navigate = useNavigate();
+  const go = (a, to) => { dismissGoal(a.key); if (to) navigate(to); };
+  const body = (a) => {
+    if (a.kind === 'nba') {
+      const g = a.jogo;
+      return { to: `/nba/jogo/${g.id}`, img: <img className="t-logo" src={g.casa.logo} alt="" />, title: `NBA · ${a.texto}`,
+        line: `${g.fora.curto} ${g.fora.placar ?? 0} × ${g.casa.placar ?? 0} ${g.casa.curto}`, small: g.periodo };
+    }
+    if (a.kind === 'f1') {
+      return { to: '/f1', img: <img className="t-logo" src={LOGO.f1} alt="" />, title: `F1 · ${a.sessao} ${a.texto === 'Começou' ? 'começou' : 'terminou'}`,
+        line: a.gp, small: (a.top || []).map((x) => `${x.pos}º ${x.nome}`).join(' · ') };
+    }
+    const p = a.partida;
+    const line = `${p.time_mandante.nome_popular} ${p.placar_mandante ?? 0} × ${p.placar_visitante ?? 0} ${p.time_visitante.nome_popular}`;
+    if (a.kind === 'periodo') return { to: `/partida/${p.partida_id}`, img: <Crest t={p.time_mandante} size={40} />, title: a.texto.toUpperCase(), line, small: p.campeonato && p.campeonato.nome_popular };
+    return { to: `/partida/${p.partida_id}`, img: <Crest t={a.time} size={40} />, title: `GOL DO ${String(a.time.nome_popular).toUpperCase()}!`, line,
+      small: a.autor && a.autor.nome ? `${a.autor.minuto ? `${a.autor.minuto} ` : ''}${a.autor.nome}` : null };
+  };
   return (
-    <div className="toasts">
+    <div className="toasts" aria-live="polite">
       <AnimatePresence>
-        {goals.map((g) => (
-          <motion.div key={g.key} className="goal" layout initial={{ opacity: 0, x: 80, scale: 0.9 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 80 }} transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-            onClick={() => dismissGoal(g.key)}>
-            <Crest t={g.time} size={40} />
-            <div><b>GOL DO {String(g.time.nome_popular).toUpperCase()}!</b>
-              <span>{g.partida.time_mandante.nome_popular} {g.partida.placar_mandante} × {g.partida.placar_visitante} {g.partida.time_visitante.nome_popular}</span>
-              {g.autor && g.autor.nome && <small>{g.autor.minuto ? `${g.autor.minuto} ` : ''}{g.autor.nome}</small>}</div>
-          </motion.div>
-        ))}
+        {goals.map((a) => {
+          const b = body(a);
+          return (
+            <motion.div key={a.key} className={`goal k-${a.kind || 'gol'}`} layout initial={{ opacity: 0, x: 80, scale: 0.9 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 80 }} transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+              onClick={() => go(a, b.to)} role="button" tabIndex={0}>
+              {b.img}
+              <div><b>{b.title}</b><span>{b.line}</span>{b.small && <small>{b.small}</small>}</div>
+              <button type="button" className="t-x" aria-label="Fechar" onClick={(e) => { e.stopPropagation(); go(a); }}>×</button>
+            </motion.div>
+          );
+        })}
       </AnimatePresence>
     </div>
   );

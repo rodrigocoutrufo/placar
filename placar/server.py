@@ -1015,6 +1015,7 @@ class LiveHub:
         self.live: list[dict] = []
         self.other: dict = {"nba": [], "f1": None}
         self.other_sig = ""
+        self.other_ready = False  # primeira leitura de NBA/F1 só guarda o estado (não avisa o que já estava rolando)
         self.ready = False
 
     def subscribe(self):
@@ -1056,6 +1057,34 @@ class LiveHub:
             pass
         return None
 
+    def _other_events(self, old, new):
+        """NBA: começou, intervalo e fim (com o placar final). F1: começo e fim de cada sessão (com o top 3)."""
+        before = {g["id"]: g for g in old.get("nba") or []}
+        now = {g["id"]: g for g in new.get("nba") or []}
+        for gid, g in now.items():
+            if gid not in before:
+                self.publish("nba", {"jogo": g, "texto": "Começou", "tipo": "inicio"})
+            elif g.get("periodo") == "Intervalo" and before[gid].get("periodo") != "Intervalo":
+                self.publish("nba", {"jogo": g, "texto": "Intervalo", "tipo": "intervalo"})
+        for gid, g in before.items():
+            if gid not in now:  # saiu do ao vivo: terminou; o placar final vem da rodada do dia
+                try:
+                    final = next((x for x in sports.nba_scoreboard(None)["jogos"] if x["id"] == gid), None)
+                except Exception:  # noqa: BLE001
+                    final = None
+                self.publish("nba", {"jogo": final or g, "texto": "Fim de jogo", "tipo": "fim"})
+        a, b = old.get("f1"), new.get("f1")
+        try:
+            w = sports.f1_weekend() or {}
+        except Exception:  # noqa: BLE001
+            w = {}
+        if b and (not a or a.get("nome") != b.get("nome")):
+            self.publish("f1", {"texto": "Começou", "sessao": b.get("nome"), "gp": w.get("nome"), "top": []})
+        if a and (not b or b.get("nome") != a.get("nome")):
+            done = next((s for s in w.get("sessoes") or [] if s.get("nome") == a.get("nome")), None) or a
+            self.publish("f1", {"texto": "Terminou", "sessao": a.get("nome"), "gp": w.get("nome"),
+                                "top": [{"pos": x.get("pos"), "nome": x.get("nome")} for x in (done.get("ordem") or [])[:3]]})
+
     def tick(self):
         st, body, _ = route("/ao-vivo")
         if st != 200:
@@ -1088,7 +1117,9 @@ class LiveHub:
             other = sports.live_summary()
             sig = json.dumps(other, sort_keys=True, ensure_ascii=False)
             if sig != self.other_sig:
-                self.other_sig, self.other = sig, other
+                if self.other_ready:  # depois da primeira leitura: avisa o que mudou (começo, intervalo, fim)
+                    self._other_events(self.other, other)
+                self.other_sig, self.other, self.other_ready = sig, other, True
                 self.publish("outros", other)
         except Exception as e:  # noqa: BLE001
             sys.stderr.write(f"outros esportes: {e!r}\n")

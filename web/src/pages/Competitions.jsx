@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useComps } from '../lib/data.js';
-import { REGIONS, isLeague, regionLabel } from '../lib/format.js';
+import { REGIONS, isLeague, regionGroups } from '../lib/format.js';
 import { compTheme, compLogoDark } from '../lib/themes.js';
 import { Skel, Stagger, Item, Tilt, ease } from '../components/ui.jsx';
 
@@ -28,19 +29,21 @@ function Poster({ c }) {
   );
 }
 
-// Europa: primeiro as competições continentais, depois um bloco por país (liga, segunda divisão e copas juntas,
-// na ordem de importância que o servidor já manda)
-function groupsOf(r, list) {
-  if (r !== 'europa') return [[null, list]];
-  const by = new Map();
-  list.forEach((c) => {
-    const k = regionLabel(c);
-    if (!by.has(k)) by.set(k, []);
-    by.get(k).push(c);
-  });
-  const cont = by.get('Europa');
-  by.delete('Europa');
-  return [...(cont ? [['Competições europeias', cont]] : []), ...by.entries()];
+// Estaduais e regionais: cartazes baixos; fora da temporada (todos encerrados) ficam recolhidos numa linha
+function Regionals({ list }) {
+  const done = list.every((c) => c.status === 'finalizado');
+  const [open, setOpen] = useState(!done);
+  if (!open) {
+    const year = (list[0] && list[0].edicao_atual && list[0].edicao_atual.temporada) || '';
+    return (
+      <div className="reg-fold">
+        <span className="reg-fold-logos">{list.map((c) => <img key={c.campeonato_id} src={compLogoDark(c)} alt={c.nome_popular} title={c.nome_popular} />)}</span>
+        <span>Temporada {year} encerrada · voltam no começo do ano</span>
+        <button type="button" className="chip" onClick={() => setOpen(true)}>Ver {list.length}</button>
+      </div>
+    );
+  }
+  return <Stagger className="poster-grid compact">{list.map((c) => <Poster key={c.campeonato_id} c={c} />)}</Stagger>;
 }
 
 // "menu de seleção": cada campeonato é um cartaz com a sua identidade
@@ -56,7 +59,7 @@ export default function Competitions() {
         return (
           <section key={r} className="reg">
             <h2 className="reg-title">{label}</h2>
-            {groupsOf(r, list).map(([sub, items]) => (
+            {r === 'estadual' ? <Regionals list={list} /> : regionGroups(r, list).map(([sub, items]) => (
               <div key={sub || r} className="reg-group">
                 {sub && <h3 className="reg-sub">{sub}</h3>}
                 <Stagger className="poster-grid">{items.map((c) => <Poster key={c.campeonato_id} c={c} />)}</Stagger>

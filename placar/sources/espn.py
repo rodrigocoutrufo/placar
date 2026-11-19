@@ -48,6 +48,8 @@ LEAGUES.update({
     202: _L("bra.camp.carioca", "Campeonato Carioca", "Carioca", "estadual", False, "Brasil", "Misto"),
     203: _L("bra.camp.mineiro", "Campeonato Mineiro", "Mineiro", "estadual", False, "Brasil", "Misto"),
     204: _L("bra.camp.gaucho", "Campeonato Gaúcho", "Gauchão", "estadual", False, "Brasil", "Misto"),
+    # os outros estaduais não estão na ESPN (só nos planos pagos da API Futebol); regionais que ela tem:
+    205: _L("bra.copa_do_nordeste", "Copa do Nordeste", "Copa do Nordeste", "estadual", False, "Brasil", "Misto"),
     # América do Sul: ligas nacionais
     211: _L("arg.1", "Liga Profissional Argentina", "Liga Argentina", "continental", True, "Argentina", rr=False, grupo_zona=8),
     213: _L("chi.1", "Campeonato Chileno", "Liga Chilena", "continental", True, "Chile"),
@@ -77,7 +79,7 @@ LEAGUES.update({
     # Seleções
     261: _L("uefa.nations", "UEFA Nations League", "Liga das Nações", "selecoes", False, "Europa", "Misto"),
 })
-LEAGUE_ORDER = CORE + [201, 202, 203, 204, 211, 213, 214, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245,
+LEAGUE_ORDER = CORE + [201, 202, 203, 204, 205, 211, 213, 214, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245,
                        221, 222, 251, 252, 261]
 
 # Faixas da tabela por posição (aproximação do regulamento vigente)

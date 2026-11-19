@@ -76,10 +76,24 @@ export function faseMatches(f) {
   return out;
 }
 export const COUNTRY = { England: 'Inglaterra', Spain: 'Espanha', Italy: 'Itália', Germany: 'Alemanha', France: 'França', Portugal: 'Portugal', Netherlands: 'Holanda', Europe: 'Europa' };
-const REGION_NAME = { nacional: 'Brasil', estadual: 'Estaduais', continental: 'América do Sul', europa: 'Europa', americas: 'América do Norte', mundo: 'Ásia', selecoes: 'Seleções' };
+const REGION_NAME = { nacional: 'Brasil', estadual: 'Estaduais e regionais', continental: 'América do Sul', europa: 'Europa', americas: 'América do Norte', mundo: 'Ásia', selecoes: 'Seleções' };
 // país da liga (football-data manda em inglês; as ligas extras da ESPN já vêm em português) ou a região
 export const regionLabel = (c) => COUNTRY[c.pais] || c.pais || REGION_NAME[c.regiao] || 'Brasil';
 export const REGIONS = Object.entries(REGION_NAME);
+// Europa: primeiro as competições continentais, depois um bloco por país (liga, segunda divisão e copas juntas,
+// na ordem de importância que o servidor já manda). Outras regiões: um bloco só.
+export function regionGroups(r, list) {
+  if (r !== 'europa') return [[null, list]];
+  const by = new Map();
+  list.forEach((c) => {
+    const k = regionLabel(c);
+    if (!by.has(k)) by.set(k, []);
+    by.get(k).push(c);
+  });
+  const cont = by.get('Europa');
+  by.delete('Europa');
+  return [...(cont ? [['Competições europeias', cont]] : []), ...by.entries()];
+}
 export const ZONES = {
   libertadores: ['Libertadores', '#1d6ff2'], 'pre-libertadores': ['Pré-Libertadores', '#5aa3ff'], 'sul-americana': ['Sul-Americana', '#f59e0b'],
   rebaixamento: ['Rebaixamento', '#e5484d'], classificados: ['Classificados', '#12a150'], acesso: ['Acesso', '#12a150'],

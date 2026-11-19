@@ -33,6 +33,7 @@ COMP_RX = {
     202: r"carioc[ãa]o|campeonato\s+carioca|ta[çc]a\s+guanabara",
     203: r"campeonato\s+mineiro",
     204: r"gauch[ãa]o|campeonato\s+ga[úu]cho",
+    205: r"copa\s+do\s+nordeste|nordest[ãa]o",
     211: r"campeonato\s+argentino|liga\s+(profissional\s+)?argentina",
     213: r"campeonato\s+chileno",
     214: r"campeonato\s+uruguaio",

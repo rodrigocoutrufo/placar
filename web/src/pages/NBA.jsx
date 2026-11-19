@@ -5,9 +5,11 @@ import { useOtherLive } from '../lib/live.js';
 import { Taste } from '../lib/store.js';
 import { LOGO } from '../lib/themes.js';
 import { fmtDT } from '../lib/format.js';
+import { getNotif, setNotif } from '../lib/notify.js';
+import { Bell } from '../components/Notify.jsx';
 import { Panel, Head, Skel, Wait, Empty, Tabs, Stagger, Item, Tilt, Digit, LiveDot, Watch, Icon, ease } from '../components/ui.jsx';
 
-export function NBAHero({ sub }) {
+export function NBAHero({ sub, action = null }) {
   return (
     <section className="arena">
       <span className="arena-court" />
@@ -15,6 +17,7 @@ export function NBAHero({ sub }) {
       <div className="arena-txt">
         <motion.h1 initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15, duration: 0.5, ease }}>NBA</motion.h1>
         <span>{sub}</span>
+        {action}
       </div>
     </section>
   );
@@ -59,7 +62,7 @@ export default function NBA() {
   const nLive = d ? d.jogos.filter((g) => g.status === 'andamento').length : 0;
   return (
     <>
-      <NBAHero sub={tab === 'classificacao' ? 'Temporada 2026-27 · classificação por conferência' : d ? `${nLive ? `${nLive} ao vivo · ` : ''}${d.jogos.length} jogos` : 'Carregando…'} />
+      <NBAHero action={<Bell on={() => getNotif().nbaTodos} onClick={() => setNotif({ nbaTodos: !getNotif().nbaTodos })} label="Avisar todos os jogos" onLabel="Avisando todos os jogos" className="on-dark" />} sub={tab === 'classificacao' ? 'Temporada 2026-27 · classificação por conferência' : d ? `${nLive ? `${nLive} ao vivo · ` : ''}${d.jogos.length} jogos` : 'Carregando…'} />
       <div className="sticky-tabs"><Tabs id="nba" active={tab} items={[['jogos', 'Jogos', '/nba'], ['classificacao', 'Classificação', '/nba/classificacao']]} /></div>
       {tab === 'classificacao' ? <Standings /> : (
         <div className="grid-main">

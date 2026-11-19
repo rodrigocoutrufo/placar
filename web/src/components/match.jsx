@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Crest, CompLogo, Digit, LiveMinute, LiveDot, Tilt, Form, Item, Stagger, CountUp, ease } from './ui.jsx';
 import { isLive, winnerSide, penScore, parseDate, fmtTime, fmtShort, relDay, STATUS_NAME, barColors, ZONES } from '../lib/format.js';
 import { compTheme } from '../lib/themes.js';
@@ -51,19 +51,45 @@ export function MatchRow({ p, showDate = false, comp = null }) {
 }
 
 // jogos agrupados por campeonato, cada bloco com a cor do campeonato
-export function CompBlocks({ groups }) {
+// resumo de um bloco recolhido: "2 ao vivo" ou o horário do primeiro e do último jogo
+function blockSummary(ps) {
+  const live = ps.filter(isLive).length;
+  if (live) return `${live} ao vivo`;
+  const done = ps.filter((p) => p.status === 'finalizado').length;
+  if (done === ps.length) return 'encerrados';
+  const hs = ps.map(fmtTime).filter((h) => h && h !== '–').sort();
+  return hs.length ? (hs[0] === hs[hs.length - 1] ? hs[0] : `${hs[0]}–${hs[hs.length - 1]}`) : '';
+}
+
+// isOpen/onToggle: a página inicial recolhe os campeonatos menos importantes do dia (sem eles a lista fica enorme)
+export function CompBlocks({ groups, isOpen = () => true, onToggle = null }) {
   return (
     <Stagger className="cblocks">
       {groups.map(({ c, ps }) => {
         const th = compTheme(c);
+        const id = c.campeonato_id || c.nome;
+        const open = isOpen(id);
         return (
-          <Item key={c.campeonato_id || c.nome} className="cblock" style={{ '--cacc': th.acc, '--cm1': th.m1, '--cm2': th.m2 }}>
-            <Link to={`/campeonato/${c.campeonato_id}`} className="cblock-head">
-              <span className="cb-logo"><CompLogo c={c} size={22} dark /></span>
-              <b>{c.nome_popular || c.nome}</b>
-              <span className="cb-n">{ps.length} {ps.length === 1 ? 'jogo' : 'jogos'}</span>
-            </Link>
-            <Stagger>{ps.map((p) => <MatchRow key={p.partida_id} p={p} />)}</Stagger>
+          <Item key={id} id={`cb-${id}`} className={`cblock ${open ? '' : 'shut'}`} style={{ '--cacc': th.acc, '--cm1': th.m1, '--cm2': th.m2 }}>
+            <div className="cblock-head">
+              <Link to={`/campeonato/${c.campeonato_id}`} className="cb-name">
+                <span className="cb-logo"><CompLogo c={c} size={22} dark /></span>
+                <b>{c.nome_popular || c.nome}</b>
+              </Link>
+              <span className="cb-n">{ps.length} {ps.length === 1 ? 'jogo' : 'jogos'}{!open && blockSummary(ps) ? ` · ${blockSummary(ps)}` : ''}</span>
+              {onToggle && (
+                <button type="button" className="cb-tog" onClick={() => onToggle(id)} aria-expanded={open} aria-label={open ? 'Recolher' : 'Mostrar jogos'}>
+                  <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.25 }}>⌄</motion.span>
+                </button>
+              )}
+            </div>
+            <AnimatePresence initial={false}>
+              {open && (
+                <motion.div key="ps" className="cb-body" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.28, ease }}>
+                  <Stagger>{ps.map((p) => <MatchRow key={p.partida_id} p={p} />)}</Stagger>{/* as linhas animam pelo Stagger */}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </Item>
         );
       })}

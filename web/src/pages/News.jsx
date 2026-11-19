@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApi } from '../lib/api.js';
 import { useComps } from '../lib/data.js';
-import { timeAgo, REGIONS } from '../lib/format.js';
+import { timeAgo, REGIONS, regionGroups } from '../lib/format.js';
 import { compTheme } from '../lib/themes.js';
 import { getFavs, useStoreVersion } from '../lib/store.js';
 import { Wait, Empty, Stagger, Item, CompLogo, Crest, ScrollRow, isDark, ease } from '../components/ui.jsx';
@@ -90,7 +90,9 @@ export default function News() {
           <motion.div className="ns-more" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease }}>
             {REGIONS.map(([r, label]) => {
               const cs = all.filter((c) => (c.regiao || 'nacional') === r);
-              return cs.length ? <div key={r} className="ns-more-reg"><small>{label}</small><div className="chips-wrap">{cs.map(chip)}</div></div> : null;
+              return cs.length ? regionGroups(r, cs).map(([sub, items]) => (
+                <div key={r + (sub || '')} className="ns-more-reg"><small>{sub ? `${label} · ${sub}` : label}</small><div className="chips-wrap">{items.map(chip)}</div></div>
+              )) : null;
             })}
           </motion.div>
         )}
