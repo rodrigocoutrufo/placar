@@ -40,9 +40,18 @@ FEEDS = {
     # futebol europeu: o feed geral dos portais brasileiros quase não traz Champions e ligas da Europa
     "ge-int": ("ge", "https://ge.globo.com/rss/ge/futebol/futebol-internacional/", "ge.globo.com", True),
     "ge-ucl": ("ge", "https://ge.globo.com/rss/ge/futebol/futebol-internacional/liga-dos-campeoes/", "ge.globo.com", True),
+    "ge-uel": ("ge", "https://ge.globo.com/rss/ge/futebol/futebol-internacional/liga-europa/", "ge.globo.com", True),
+    # seções por país (ligas e copas de lá): sem campeonato citado, a notícia conta para a liga principal do país
+    "ge-eng": ("ge", "https://ge.globo.com/rss/ge/futebol/futebol-internacional/futebol-ingles/", "ge.globo.com", True),
+    "ge-esp": ("ge", "https://ge.globo.com/rss/ge/futebol/futebol-internacional/futebol-espanhol/", "ge.globo.com", True),
+    "ge-ale": ("ge", "https://ge.globo.com/rss/ge/futebol/futebol-internacional/futebol-alemao/", "ge.globo.com", True),
+    "ge-fra": ("ge", "https://ge.globo.com/rss/ge/futebol/futebol-internacional/futebol-frances/", "ge.globo.com", True),
+    "ge-arg": ("ge", "https://ge.globo.com/rss/ge/futebol/futebol-internacional/futebol-argentino/", "ge.globo.com", True),
 }
 # feeds de um campeonato só: toda notícia deles é desse campeonato
-FEED_COMPS = {"ge-ucl": [106]}
+FEED_COMPS = {"ge-ucl": [106], "ge-uel": [231]}
+# feed de um país: liga principal de lá quando a notícia não cita campeonato (ver core/news_filter.py)
+FEED_HOME = {"ge-eng": 101, "ge-esp": 102, "ge-ale": 104, "ge-fra": 105, "ge-arg": 211}
 OTHER_SPORTS = re.compile(r"\b(f[óo]rmula ?1|f1|nba|nfl|basquete|v[ôo]lei|t[êe]nis|ufc|mma|boxe|nata[çc][ãa]o|atletismo|skate|surfe?|gin[áa]stica|"
                           r"hand(ebol)?|j[úu]d[ôo]|ciclismo|xadrez|automobilismo|stock car|motogp|golfe|beisebol|h[óo]quei|rugby|futsal|beach|"
                           r"(para)?escalada|paral[íi]mpic\w*|esgrima|canoagem|taekwondo|karat[êe]|triatlo|maratona|e-?sports?)\b", re.I)
@@ -54,11 +63,26 @@ stats = {"requests": 0, "errors": 0}
 _lock = threading.Lock()
 
 
+_refreshing: set[str] = set()
+
+
 def _fetch(url):
+    """Feed do portal com cache em disco. Cópia vencida: devolve na hora e atualiza em segundo plano
+    (um portal lento não segura a página de notícias; antes a primeira visita esperava ~16 s)."""
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     f = CACHE_DIR / (hashlib.sha1(url.encode()).hexdigest() + ".xml")
-    if f.exists() and time.time() - f.stat().st_mtime < TTL:
+    if f.exists():
+        if time.time() - f.stat().st_mtime >= TTL:
+            with _lock:
+                go = url not in _refreshing
+                _refreshing.add(url)
+            if go:
+                threading.Thread(target=_download, args=(url, f), daemon=True).start()
         return f.read_bytes()
+    return _download(url, f)
+
+
+def _download(url, f):
     try:
         with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=15) as r:
             data = r.read()
@@ -70,6 +94,9 @@ def _fetch(url):
     except Exception:
         stats["errors"] += 1
         return f.read_bytes() if f.exists() else b""  # sem acesso: última cópia
+    finally:
+        with _lock:
+            _refreshing.discard(url)
 
 
 def _strip(s):
@@ -108,7 +135,10 @@ def _parse(slug, data):
         if not football_only and not FOOTBALL.search(text) and not _teams_in(text):
             continue  # portal de esportes em geral: só entra o que é de futebol
         try:
-            pub = email.utils.parsedate_to_datetime(it.findtext("pubDate") or "").astimezone(BRT)
+            pub = email.utils.parsedate_to_datetime(it.findtext("pubDate") or "")
+            # "-0000" = fuso desconhecido (o ge usa assim, com a hora de Brasília): sem isso, num servidor em UTC
+            # todas as notícias do ge ficariam 3 horas erradas
+            pub = (pub.replace(tzinfo=BRT) if pub.tzinfo is None else pub).astimezone(BRT)
         except (TypeError, ValueError):
             pub = None
         out.append({
@@ -116,15 +146,16 @@ def _parse(slug, data):
             "titulo": title, "resumo": summary[:280] + ("…" if len(summary) > 280 else "") if summary and summary != title else None,
             "imagem": _image(it, desc_raw), "link": link,
             "publicado_em": pub.strftime("%Y-%m-%dT%H:%M:%S%z") if pub else None,
-            "provedor": {"slug": slug, "nome": name, "logo": f"https://www.google.com/s2/favicons?domain={domain}&sz=64"},
+            # os vários feeds do ge (Brasil, Champions, países...) são um veículo só no filtro
+            "provedor": {"slug": slug.split("-")[0], "nome": name, "logo": f"https://www.google.com/s2/favicons?domain={domain}&sz=64"},
             "relevancia": None, "classificacao": {"tipo": "noticia", "assuntos": [], "competicoes": []},
-            "times": _teams_in(text), "_comps": FEED_COMPS.get(slug, []),
+            "times": _teams_in(text), "_comps": FEED_COMPS.get(slug, []), "_home": FEED_HOME.get(slug),
         })
     return out
 
 
 # ---------------------------------------------------------------- marcação de times
-TEAM_RX: list = [None]  # [(regex, time)], montado a partir dos times conhecidos
+TEAM_RX: list = [None]  # (regex única com todos os nomes, {nome: time}), montado a partir dos times conhecidos
 NICKNAMES = {
     "Flamengo": ["Mengão"], "Palmeiras": ["Verdão"], "Corinthians": ["Timão"], "Atlético-MG": ["Galo", "Atlético Mineiro"],
     "Cruzeiro": ["Raposa"], "Santos": ["Peixe"], "Internacional": ["Colorado"], "Botafogo": ["Fogão"],
@@ -153,16 +184,23 @@ def set_teams(teams: list[dict]):
         if not name or name in seen or name in AMBIGUOUS:
             continue
         seen.add(name)
-        variants = [name] + NICKNAMES.get(name, [])
-        pats = "|".join(re.escape(v) for v in sorted(variants, key=len, reverse=True))
-        rx.append((re.compile(rf"(?<![\w-])({pats})(?![\w-])"), {k: t.get(k) for k in ("time_id", "nome_popular", "sigla", "escudo", "escudo_escuro")}))
-    TEAM_RX[0] = rx
+        info = {k: t.get(k) for k in ("time_id", "nome_popular", "sigla", "escudo", "escudo_escuro")}
+        for v in [name] + NICKNAMES.get(name, []):
+            rx.append((v, info))
+    # uma regex só com todos os nomes (os maiores primeiro: "Vasco da Gama" antes de "Vasco"). Antes era uma por
+    # time: com ~1.000 manchetes e centenas de times, a primeira visita às notícias levava ~10 s só nisso.
+    by_name = dict(rx)
+    big = re.compile(r"(?<![\w-])(" + "|".join(re.escape(v) for v in sorted(by_name, key=len, reverse=True)) + r")(?![\w-])") if by_name else None
+    TEAM_RX[0] = (big, by_name)
 
 
 def _teams_in(text):
-    out = []
-    for rx, t in TEAM_RX[0] or []:
-        if rx.search(text):  # busca sensível a maiúsculas: "Santos" (time) e não "santos"
+    big, by_name = TEAM_RX[0] or (None, {})
+    out, seen = [], set()
+    for m in (big.finditer(text or "") if big else []):  # sensível a maiúsculas: "Santos" (time) e não "santos"
+        t = by_name[m.group(1)]
+        if t["nome_popular"] not in seen:
+            seen.add(t["nome_popular"])
             out.append(t)
     return out[:6]
 
@@ -187,6 +225,7 @@ def all_news() -> list[dict]:
     for n in items:
         if n["link"] in by_link:
             by_link[n["link"]]["_comps"] = sorted(set(by_link[n["link"]]["_comps"]) | set(n["_comps"]))
+            by_link[n["link"]]["_home"] = by_link[n["link"]].get("_home") or n.get("_home")
         else:
             by_link[n["link"]] = n
     items = list(by_link.values())

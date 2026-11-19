@@ -1,4 +1,4 @@
-import { useQuery, QueryClient } from '@tanstack/react-query';
+import { useQuery, QueryClient, keepPreviousData } from '@tanstack/react-query';
 
 export const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 30_000 } },
@@ -30,10 +30,12 @@ export const failHard = (_err, query) => query.state.data === undefined;
 
 // useApi('/campeonatos', { ttl: 600_000 })  ->  { data, isLoading, error }
 // critical: é o dado principal da tela; se falhar (servidor fora, 503...) a tela mostra o erro em vez de carregar para sempre
-export function useApi(path, { ttl = 30_000, refetch = false, enabled = true, critical = false } = {}) {
+// keep: mostra o resultado anterior enquanto busca o novo (ex.: "Carregar mais" sem a lista sumir)
+export function useApi(path, { ttl = 30_000, refetch = false, enabled = true, critical = false, keep = false } = {}) {
   return useQuery({
     queryKey: [path], queryFn: () => get(path), staleTime: ttl, enabled: enabled && !!path,
     refetchInterval: refetch || false, throwOnError: critical ? failHard : false,
+    ...(keep ? { placeholderData: keepPreviousData } : {}),
   });
 }
 

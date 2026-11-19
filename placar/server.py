@@ -357,15 +357,25 @@ def _league_team_names(cid: int) -> set:
 _league_index = {"at": 0.0, "map": {}}
 
 
+_league_index_lock = threading.Lock()
+
+
 def _team_domestic_league(name: str | None):
-    """Liga nacional de um time pelo nome (os IDs mudam de fonte para fonte; o nome não)."""
+    """Liga nacional de um time pelo nome (os IDs mudam de fonte para fonte; o nome não).
+    Só as ligas cujos times as notícias marcam (Brasil e football-data, ver known_teams): carregar a tabela das
+    ~20 ligas extras aqui travava a primeira visita às notícias. Montado uma vez a cada 30 min, em paralelo."""
     if time.time() - _league_index["at"] > 1800:
-        idx = {}
-        for lid in sorted(news_filter.DOMESTIC):
-            for n in _league_team_names(lid):
-                idx.setdefault(n, lid)
-        if idx:
-            _league_index.update(at=time.time(), map=idx)
+        with _league_index_lock:
+            if time.time() - _league_index["at"] > 1800:
+                lids = sorted(news_filter.DOMESTIC & ({10, 14} | set(footballdata.LEAGUES)))
+                with ThreadPoolExecutor(6) as ex:
+                    sets = list(ex.map(_league_team_names, lids))
+                idx = {}
+                for lid, names in zip(lids, sets):
+                    for n in names:
+                        idx.setdefault(n, lid)
+                # índice vazio (fontes fora do ar): tenta de novo em 1 min, sem refazer a cada notícia
+                _league_index.update(at=time.time() - (0 if idx else 1740), map=idx or _league_index["map"])
     return _league_index["map"].get(_nk(name))
 
 
@@ -396,11 +406,44 @@ def _clean_news(items):
     return items
 
 
+def _about(n, tids, names):
+    """A notícia fala de algum destes times (pelo ID ou pelo nome, que muda entre as fontes)?"""
+    return any(str(t.get("time_id")) in tids or any(_same(t.get("nome_popular"), x) for x in names) for t in n.get("times") or [])
+
+
+def _news_ts(n):
+    try:
+        return datetime.strptime(n.get("publicado_em") or "", "%Y-%m-%dT%H:%M:%S%z").timestamp()
+    except ValueError:
+        return 0.0
+
+
+def _mix_outlets(items, window=6 * 3600):
+    """Mantém a ordem por data, mas não deixa três seguidas do mesmo veículo quando há notícia de outro
+    publicada até 6 h antes (o ge, com vários feeds, ocupava quase todo o topo)."""
+    rest, out = list(items), []
+    slug = lambda n: (n.get("provedor") or {}).get("slug")
+    while rest:
+        pick = 0
+        prev = [slug(x) for x in out[-2:]]
+        if len(prev) == 2 and prev[0] == prev[1] == slug(rest[0]):
+            t0 = _news_ts(rest[0])
+            for i, x in enumerate(rest[1:60], 1):
+                if slug(x) != prev[0]:
+                    if t0 - _news_ts(x) <= window:
+                        pick = i
+                    break
+        out.append(rest.pop(pick))
+    return out
+
+
 def news(query: dict, ids: set) -> tuple[int, bytes, str]:
     """Notícias da API Futebol (add-on; uma chamada grande em cache, filtrada aqui) + ESPN Brasil."""
     per = max(1, min(int(query.get("por_pagina") or 30), 100))
     page = max(1, int(query.get("pagina") or 1))
-    tid = str(query.get("time_id") or "").split(",")[0]
+    # um time, ou vários ("Meus times"): com vários, busca o geral e filtra no fim
+    tids = [t.strip() for t in str(query.get("time_id") or "").split(",") if t.strip().isdigit()][:20]
+    tid = tids[0] if len(tids) == 1 else ""
     cid = int(query.get("campeonato_id") or 0) or None
     prov = query.get("provedor")
     items, sources = [], set()
@@ -447,9 +490,9 @@ def news(query: dict, ids: set) -> tuple[int, bytes, str]:
     try:
         _rss_teams()
         rss = news_rss.all_news()
-        if tid:
-            name = team_name_any(tid)
-            rss = [n for n in rss if any(str(t["time_id"]) == tid or (name and _same(t["nome_popular"], name)) for t in n["times"])]
+        if tids:
+            names = [x for x in (team_name_any(t) for t in tids) if x]
+            rss = [n for n in rss if _about(n, tids, names)]
         items += rss
     except Exception as e:  # noqa: BLE001 — um portal fora do ar não derruba as notícias
         sys.stderr.write(f"rss: {e!r}\n")
@@ -465,6 +508,10 @@ def news(query: dict, ids: set) -> tuple[int, bytes, str]:
             if cid and not news_filter.matches(lab, cid):
                 continue  # o campeonato vem da classificação (IA ou regras), não só do nome do time
             uniq.append({**n, "campeonatos": lab["competicoes"] or lab.get("inferidas", []), "classificado_por": lab["origem"]})
+    if len(tids) > 1:  # "Meus times": API Futebol e ESPN vieram sem filtro de time
+        names = [x for x in (team_name_any(t) for t in tids) if x]
+        uniq = [n for n in uniq if _about(n, tids, names)]
+    uniq = _mix_outlets(uniq)
     # a lista de veículos sai ANTES do filtro de veículo: assim dá para trocar de um portal para outro
     provs = {}
     for n in uniq:

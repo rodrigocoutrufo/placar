@@ -12,14 +12,15 @@ de clube conta para a liga nacional do clube (nunca para copas: transferência d
 
 import re
 
-DOMESTIC = {10, 14, 101, 102, 103, 104, 105, 107, 108}  # ligas: aceitam notícia de clube sem campeonato citado
+# ligas: aceitam notícia de clube sem campeonato citado (as extras da ESPN também: Argentina, MLS, Arábia...)
+DOMESTIC = {10, 14, 101, 102, 103, 104, 105, 107, 108, 211, 213, 214, 221, 222, 233, 234, 235, 236, 237, 238, 239, 251, 252}
 
 COMP_RX = {
-    14: r"s[ée]rie\s+b\b",
+    14: r"s[ée]rie\s+b\b(?!\s+(italiana|da\s+it[áa]lia))",
     2: r"copa\s+do\s+brasil(?!\s+(sub|feminin))",
     7: r"libertadores(?!\s+(sub|feminin))",
     9: r"sul-?americana|sudamericana",
-    106: r"champions(\s+league)?(?!\s+(feminin|da\s+[áa]sia|africana))|liga\s+dos\s+campe[õo]es(?!\s+(feminin|da\s+[áa]sia|africana))",
+    106: r"\bchampions\b(\s+league)?(?!\s+(feminin|da\s+[áa]sia|africana))|liga\s+dos\s+campe[õo]es(?!\s+(feminin|da\s+[áa]sia|africana))",
     101: r"premier\s+league|campeonato\s+ingl[êe]s",
     102: r"la\s?liga|campeonato\s+espanhol",
     103: r"s[ée]rie\s+a\s+(italiana|da\s+it[áa]lia)|campeonato\s+italiano|calcio",
@@ -27,6 +28,34 @@ COMP_RX = {
     105: r"ligue\s+1|campeonato\s+franc[êe]s",
     107: r"liga\s+portugal|campeonato\s+portugu[êe]s|liga\s+betclic|primeira\s+liga",
     108: r"eredivisie|campeonato\s+holand[êe]s",
+    # campeonatos extras (ESPN)
+    201: r"paulist[ãa]o|campeonato\s+paulista(?!\s+(sub|feminin|da\s+s[ée]rie|a[2-4]))",
+    202: r"carioc[ãa]o|campeonato\s+carioca|ta[çc]a\s+guanabara",
+    203: r"campeonato\s+mineiro",
+    204: r"gauch[ãa]o|campeonato\s+ga[úu]cho",
+    211: r"campeonato\s+argentino|liga\s+(profissional\s+)?argentina",
+    213: r"campeonato\s+chileno",
+    214: r"campeonato\s+uruguaio",
+    231: r"europa\s+league|liga\s+europa(?!\s+(feminin|confer))",
+    232: r"conference\s+league|liga\s+confer[êe]ncia",
+    233: r"\bchampionship\b|segunda\s+divis[ãa]o\s+(inglesa|da\s+inglaterra)",
+    234: r"laliga\s*2|laliga\s+hypermotion|segunda\s+divis[ãa]o\s+(espanhola|da\s+espanha)",
+    235: r"s[ée]rie\s+b\s+(italiana|da\s+it[áa]lia)|segunda\s+divis[ãa]o\s+(italiana|da\s+it[áa]lia)",
+    236: r"2\.?\s*bundesliga|segunda\s+divis[ãa]o\s+(alem[ãa]|da\s+alemanha)",
+    237: r"s[üu]per\s+lig|campeonato\s+turco",
+    238: r"campeonato\s+belga|jupiler\s+pro\s+league",
+    239: r"campeonato\s+escoc[êe]s|scottish\s+premiership",
+    240: r"\bfa\s+cup\b|copa\s+da\s+inglaterra",
+    241: r"carabao\s+cup|copa\s+da\s+liga\s+inglesa|\bleague\s+cup\b",
+    242: r"copa\s+do\s+rei|copa\s+del\s+rey",
+    243: r"copa\s+da\s+it[áa]lia|coppa\s+italia",
+    244: r"copa\s+da\s+alemanha|dfb-?pokal",
+    245: r"copa\s+da\s+fran[çc]a|coupe\s+de\s+france",
+    221: r"\bmls\b|major\s+league\s+soccer",
+    222: r"liga\s+mx\b|campeonato\s+mexicano",
+    251: r"(liga|campeonato)\s+saudita|saudi\s+pro\s+league",
+    252: r"j-?league|j1\s+league|campeonato\s+japon[êe]s",
+    261: r"liga\s+das\s+na[çc][õo]es|nations\s+league",
 }
 COMP_RX = {k: re.compile(v, re.I) for k, v in COMP_RX.items()}
 BRASILEIRAO = re.compile(r"brasileir[ãa]o|s[ée]rie\s+a\b(?!\s*\d)", re.I)
@@ -72,13 +101,18 @@ def rule_labels(item: dict, team_leagues: dict | None = None) -> dict:
         comps.add(10)
     if 103 in comps:
         comps.discard(10)
+    if 235 in comps:  # Série B italiana não é a Série A italiana nem o Brasileirão
+        comps -= {10, 14, 103}
     inferred = set()
     if not comps and team_leagues and not ELSEWHERE.search(text) and not lower:
         subj = subject_teams(title, list(team_leagues))
         leagues = {team_leagues[n] for n in subj if team_leagues[n] in DOMESTIC}
         if 0 < len(subj) <= 2 and len(leagues) == 1:  # um clube (ou um jogo entre dois da mesma liga): conta para essa liga
             inferred = leagues
-    return {"esporte": esporte, "categoria": categoria, "competicoes": sorted(comps), "inferidas": sorted(inferred), "origem": "regras"}
+    if not comps and not inferred and item.get("_home") and not ELSEWHERE.search(text):
+        inferred = {item["_home"]}  # seção de um país no portal (ge "futebol inglês"): conta para a liga de lá
+    return {"esporte": esporte, "categoria": categoria, "competicoes": sorted(comps), "inferidas": sorted(inferred), "origem": "regras",
+            "do_feed": sorted(set(item.get("_comps") or []))}
 
 
 def merge(rules: dict, ai: dict | None) -> dict:
@@ -86,8 +120,9 @@ def merge(rules: dict, ai: dict | None) -> dict:
         return rules
     # a IA decide esporte, categoria e campeonatos citados; quando ela não cita nenhum, vale a liga
     # nacional do clube inferida pelas regras (notícia de bastidor de clube)
+    # o feed de um campeonato só (ge Liga dos Campeões, Liga Europa) vale sempre: rótulo antigo da IA não tem os campeonatos novos
     return {"esporte": ai.get("esporte", rules["esporte"]), "categoria": ai.get("categoria", rules["categoria"]),
-            "competicoes": sorted(set(ai.get("competicoes") or [])), "inferidas": rules.get("inferidas", []), "origem": "ia",
+            "competicoes": sorted(set(ai.get("competicoes") or []) | set(rules.get("do_feed") or [])), "inferidas": rules.get("inferidas", []), "origem": "ia",
             "times_ia": ai.get("times") or []}
 
 
