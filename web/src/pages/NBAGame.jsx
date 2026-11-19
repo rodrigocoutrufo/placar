@@ -5,6 +5,7 @@ import { useApi } from '../lib/api.js';
 import { LOGO } from '../lib/themes.js';
 import { fmtDT } from '../lib/format.js';
 import { Panel, Head, Skel, Empty, Stagger, Item, Digit, LiveDot, Watch, Reveal, ease } from '../components/ui.jsx';
+import { ShotChart } from '../components/ShotChart.jsx';
 
 const COLS = ['MIN', 'PTS', 'REB', 'AST', 'FG', '3PT', 'FT', 'STL', 'BLK', 'TO', 'PF', '+/-'];
 const PT = { MIN: 'Min', PTS: 'Pts', REB: 'Reb', AST: 'Ast', FG: 'Arr.', '3PT': '3 pts', FT: 'LL', STL: 'Rb', BLK: 'Toc', TO: 'Err', PF: 'Flt', '+/-': '+/-' };
@@ -56,7 +57,7 @@ export default function NBAGame() {
       )}
 
       <div className="sticky-tabs">
-        <nav className="tabs">{[['resumo', 'Resumo'], ['box', 'Box score'], ['lances', 'Lances']].map(([k, l]) => (
+        <nav className="tabs">{[['resumo', 'Resumo'], ['box', 'Box score'], ['arremessos', 'Arremessos'], ['lances', 'Lances']].map(([k, l]) => (
           <button key={k} className={`tab ${tab === k ? 'on' : ''}`} onClick={() => setTab(k)}>{l}{tab === k && <motion.span layoutId="tab-nbag" className="tab-ind" />}</button>
         ))}</nav>
       </div>
@@ -68,6 +69,8 @@ export default function NBAGame() {
               <div className="seg">{[['casa', H], ['fora', A]].map(([k, t]) => <button key={k} className={side === k ? 'on' : ''} onClick={() => setSide(k)}><img src={t.logo} alt="" width="18" /> {t.curto}{side === k && <motion.span layoutId="seg-nba" className="seg-ind" />}</button>)}</div>
               {g.box && g.box[side] ? <Box b={g.box[side]} title={side === 'casa' ? H.curto : A.curto} /> : <Empty>O box score aparece quando o jogo começa.</Empty>}
             </Panel>
+          ) : tab === 'arremessos' ? (
+            <Panel><Head sub="cada arremesso de quadra, do lance a lance">{live && <LiveDot />} Mapa de arremessos</Head><ShotChart shots={g.arremessos} home={H} away={A} /></Panel>
           ) : tab === 'lances' ? (
             <Panel>
               <Head sub="mais recentes primeiro">{live && <LiveDot />} Lances</Head>

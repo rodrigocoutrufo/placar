@@ -11,6 +11,7 @@ import { compTheme, LOGO } from '../lib/themes.js';
 import { Taste, getFavs, useStoreVersion } from '../lib/store.js';
 import { Panel, Head, Skel, Empty, Stagger, Item, CompLogo, Crest, Countdown, LiveDot, Icon, ScrollRow, isDark, ease } from '../components/ui.jsx';
 import { ScoreCard, Rail, CompBlocks, Standings } from '../components/match.jsx';
+import { InstallBanner } from '../components/Install.jsx';
 
 export default function Home() {
   useStoreVersion();
@@ -93,6 +94,7 @@ export default function Home() {
         ) : <Skel h={170} />}
       </section>
 
+      <InstallBanner />
       <PickComps comps={comps} />
       <CompStrip comps={comps.filter((c) => hc.includes(+c.campeonato_id))} total={comps.length} />
 
@@ -119,6 +121,7 @@ export default function Home() {
               {[['seg', 'Seguindo'], ['all', `Todos · ${dayAll.length}`], ['live', `Ao vivo · ${live.length}`]].map(([k, l]) => (
                 <button key={k} className={`chip ${filter === k ? 'on' : ''}`} onClick={() => setQ('f', k === 'seg' ? null : k)}>{k === 'live' && <LiveDot />}{k === 'seg' && <span aria-hidden="true">★</span>}{l}</button>
               ))}
+              <Link to="/multijogo" className="chip mj-entry" title="Até 4 jogos lado a lado">▦ Multijogo</Link>
             </div>
             {many && (
               <div className="cb-jump">

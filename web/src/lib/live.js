@@ -1,7 +1,7 @@
 // Tempo real: transmissão do servidor (SSE /api/stream) com volta para consulta periódica se cair.
 import { useSyncExternalStore } from 'react';
 import { get } from './api.js';
-import { wantsMatch, periodKind, wantsNba, wantsF1, systemNotify } from './notify.js';
+import { wantsMatch, periodKind, wantsNba, wantsF1, systemNotify, isWatching } from './notify.js';
 
 const state = { live: [], other: { nba: [], f1: null }, goals: [], on: false };
 const subs = new Set();
@@ -24,14 +24,15 @@ function pushAlert(a) {
 const score = (p) => `${p.time_mandante.nome_popular} ${p.placar_mandante ?? 0} × ${p.placar_visitante ?? 0} ${p.time_visitante.nome_popular}`;
 function onGoal(g) {
   if (!wantsMatch(g.partida, 'gol')) return;
-  pushAlert({ kind: 'gol', id: g.partida.partida_id, ...g });
+  // no multijogo o próprio quadro do jogo pisca "GOL!"; o aviso do navegador vale do mesmo jeito (aba em segundo plano)
+  if (!isWatching(g.partida.partida_id)) pushAlert({ kind: 'gol', id: g.partida.partida_id, ...g });
   const who = g.autor && g.autor.nome ? ` · ${g.autor.minuto ? `${g.autor.minuto} ` : ''}${g.autor.nome}` : '';
   systemNotify(`Gol do ${g.time.nome_popular}!`, score(g.partida) + who, { icon: g.time.escudo, tag: `gol-${g.partida.partida_id}`, url: `/#/partida/${g.partida.partida_id}` });
 }
 function onPeriod(e) {
   const kind = periodKind(e.texto);
   if (!kind || !wantsMatch(e.partida, kind)) return;
-  pushAlert({ kind: 'periodo', id: e.partida.partida_id, partida: e.partida, texto: e.texto });
+  if (!isWatching(e.partida.partida_id)) pushAlert({ kind: 'periodo', id: e.partida.partida_id, partida: e.partida, texto: e.texto });
   systemNotify(e.texto, score(e.partida), { tag: `per-${e.partida.partida_id}`, url: `/#/partida/${e.partida.partida_id}` });
 }
 function onNba(e) {

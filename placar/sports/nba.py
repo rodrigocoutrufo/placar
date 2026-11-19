@@ -34,7 +34,7 @@ def _nba_team(c: dict) -> dict:
             "sigla": t.get("abbreviation"), "logo": t.get("logo") or ((t.get("logos") or [{}])[0].get("href")),
             "cor": "#" + t["color"] if re.fullmatch(r"[0-9a-fA-F]{6}", t.get("color") or "") else None,
             "placar": _int(c.get("score")), "recorde": rec, "vencedor": bool(c.get("winner")),
-            "parciais": [_int(x.get("value"), 0) for x in c.get("linescores") or []]}
+            "parciais": [_int(x.get("value", x.get("displayValue")), 0) for x in c.get("linescores") or []]}  # o resumo do jogo só manda displayValue
 
 
 def _nba_game(e: dict) -> dict:
@@ -146,11 +146,39 @@ def nba_game(gid: int) -> dict:
                     "texto": _pt(p.get("text") or ""), "cesta": bool(p.get("scoringPlay")), "valor": p.get("scoreValue"),
                     "lado": side_of.get(str((p.get("team") or {}).get("id")), None), "placar": f"{p.get('awayScore')}-{p.get('homeScore')}"}
                    for p in plays[-60:]][::-1]
+    # mapa de arremessos: posição de cada arremesso de quadra (lances livres ficam de fora: a ESPN não dá posição)
+    names = {r["id"]: r for side in box.values() for r in side["titulares"] + side["reservas"]}
+    shots = []
+    for p in plays:
+        c = p.get("coordinate") or {}
+        x, y = c.get("x"), c.get("y")
+        if not p.get("shootingPlay") or not isinstance(x, (int, float)) or not isinstance(y, (int, float)) or not (0 <= x <= 50 and -5 <= y <= 47):
+            continue
+        # a ESPN mede o y a partir da linha do aro (enterradas caem em y ≈ 1); na quadra o aro fica a 5,25 pés do fundo
+        y = min(47, max(0, y + 4.25))
+        aid = _int(((p.get("participants") or [{}])[0].get("athlete") or {}).get("id"))
+        who = names.get(aid) or {}
+        dist = ((x - 25) ** 2 + (y - 5.25) ** 2) ** 0.5 * 0.3048  # distância até o aro, em metros
+        shots.append({"x": x, "y": y, "ok": bool(p.get("scoringPlay")), "pts": _int(p.get("pointsAttempted")) or (3 if dist > 6.9 else 2),
+                      "tipo": _shot_type((p.get("type") or {}).get("text") or ""), "jogador": aid, "nome": who.get("curto") or who.get("nome"),
+                      "lado": side_of.get(str((p.get("team") or {}).get("id"))), "periodo": (p.get("period") or {}).get("number"),
+                      "relogio": (p.get("clock") or {}).get("displayValue"), "dist": round(dist, 1)})
+    g["arremessos"] = shots
     g["series"] = [x.get("summary") for x in s.get("seasonseries") or [] if x.get("summary")][:1]
     g["lesoes"] = [{"time": side_of.get(str((t.get("team") or {}).get("id")), None),
                     "jogadores": [{"nome": (i.get("athlete") or {}).get("displayName"), "status": {"Out": "Fora", "Day-To-Day": "Dúvida"}.get(i.get("status"), i.get("status"))}
                                   for i in t.get("injuries") or []]} for t in s.get("injuries") or []]
     return g
+
+
+SHOT_PT = [("dunk", "Enterrada"), ("alley oop", "Ponte aérea"), ("layup", "Bandeja"), ("hook", "Gancho"), ("tip", "Tapinha"),
+           ("floating", "Flutuante"), ("fadeaway", "Fadeaway"), ("step back", "Step-back"), ("pullup", "Arremesso parando"),
+           ("turnaround", "Arremesso girando"), ("jump shot", "Arremesso"), ("shot", "Arremesso")]
+
+
+def _shot_type(t: str) -> str:
+    t = t.lower()
+    return next((pt for en, pt in SHOT_PT if en in t), "Arremesso")
 
 
 def _meters(h):

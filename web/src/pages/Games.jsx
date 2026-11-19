@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
-import { useApi, fetchCached, soft } from '../lib/api.js';
+import { fetchCached, post, soft, useApi } from '../lib/api.js';
 import { useComps, useAgenda } from '../lib/data.js';
 import { useLive } from '../lib/live.js';
-import { store, account, useStoreVersion } from '../lib/store.js';
+import { account, store, useStoreVersion } from '../lib/store.js';
 import { dayKey, parseDate, fmtDay, fmtShort, fmtTime, flattenTable, norm } from '../lib/format.js';
 import { Panel, Head, Skel, Empty, Stagger, Item, Crest, CompLogo, CountUp, Tilt, Icon, isDark, ScrollRow, ease } from '../components/ui.jsx';
 import Penalties from './Penalty.jsx';
@@ -32,6 +32,24 @@ function palScore(p, m) {
 function palStats() {
   const all = Object.values(getPal()), done = all.filter((p) => p.pts != null);
   return { total: all.length, pontos: done.reduce((a, p) => a + p.pts, 0), exatos: done.filter((p) => p.pts === 3).length, acertos: done.filter((p) => p.pts > 0).length, avaliados: done.length };
+}
+// com conta: o palpite também vai para o servidor (bolão com amigos; ele fecha o palpite no começo do jogo)
+let pending = {}, timer = null;
+function sendPick(id, h, a) {
+  if (!account.user) return;
+  pending[id] = { partida_id: +id, h, a };
+  clearTimeout(timer);
+  timer = setTimeout(() => { const ps = Object.values(pending); pending = {}; if (ps.length) post('/bolao/palpites', { palpites: ps }).catch(() => {}); }, 800);
+}
+// uma vez por sessão: manda os palpites de jogos futuros que estavam só neste aparelho
+let synced = false;
+function syncPicks(byId) {
+  if (synced || !account.user) return;
+  synced = true;
+  const now = Date.now();
+  const ps = Object.entries(getPal()).filter(([id]) => { const m = byId.get(+id); return m && m.status === 'agendado' && parseDate(m) > now; })
+    .map(([id, p]) => ({ partida_id: +id, h: p.h, a: p.a }));
+  for (let i = 0; i < ps.length; i += 80) post('/bolao/palpites', { palpites: ps.slice(i, i + 80) }).catch(() => {});
 }
 const slim = (m) => ({ h: m.time_mandante.nome_popular, a: m.time_visitante.nome_popular, he: m.time_mandante.escudo, ae: m.time_visitante.escudo, sh: m.placar_mandante, sa: m.placar_visitante, st: m.status, iso: m.data_realizacao_iso, c: m.campeonato && m.campeonato.nome_popular });
 
@@ -104,7 +122,8 @@ function Bolao() {
     const pal = getPal(); let ch = false;
     Object.entries(pal).forEach(([id, p]) => { const m = byId.get(+id); if (m) { p.m = slim(m); const s = palScore(p, m); if (s != null && s !== p.pts) { p.pts = s; ch = true; } } });
     if (ch) store.set('placar.palpites', pal);
-  }, [agenda]); // eslint-disable-line react-hooks/exhaustive-deps
+    syncPicks(byId);
+  }, [agenda, account.user]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!agenda) return <GameShell title="Bolão"><Skel h={400} /></GameShell>;
   const pal = getPal(), st = palStats(), now = Date.now();
   const up = agenda.filter((m) => m.status === 'agendado' && parseDate(m) > now && parseDate(m) - now < 8 * 864e5).sort((a, b) => parseDate(a) - parseDate(b));
@@ -116,6 +135,7 @@ function Bolao() {
     const all = getPal();
     if (h == null || a == null) delete all[m.partida_id]; else all[m.partida_id] = { h, a, m: slim(m) };
     store.set('placar.palpites', all);
+    sendPick(m.partida_id, h, a);
     setSaved(m.partida_id); setTimeout(() => setSaved(null), 900);
   };
   const num = (v) => (v === '' ? null : Math.max(0, Math.min(20, +v)));
@@ -125,6 +145,7 @@ function Bolao() {
         <Item key={id}><Link to={`/partida/${id}`} className="pal-h"><span><small className="muted">{p.m.c}</small><b>{p.m.h} <em>{p.h}×{p.a}</em> {p.m.a}</b><small className="muted">{p.m.st === 'finalizado' ? `Resultado: ${p.m.sh} × ${p.m.sa}` : 'Aguardando o jogo'}</small></span>
           <span className={`ppts p${p.pts ?? 'n'}`}>{p.pts == null ? '–' : `+${p.pts}`}</span></Link></Item>))}</Stagger> : <Empty>Seus palpites aparecem aqui.</Empty>}</Panel>
     )}>
+      <Link to="/bolao" className="bl-cta"><b>👥 Bolão com amigos</b><span>Crie um grupo, mande o código para a turma e veja quem ganha a semana.</span><em>Abrir →</em></Link>
       <Panel><div className="kpi-grid"><div><b><CountUp value={st.pontos} /></b><span>Pontos</span></div><div><b><CountUp value={st.total} /></b><span>Palpites</span></div><div><b><CountUp value={st.exatos} /></b><span>Placares exatos</span></div><div><b><CountUp value={st.avaliados ? Math.round((st.acertos / st.avaliados) * 100) : 0} />%</b><span>Aproveitamento</span></div></div></Panel>
       <Panel className="flush">
         <ScrollRow><div className="filters chips-row" style={{ padding: '12px 16px' }}>

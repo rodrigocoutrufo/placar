@@ -10,6 +10,7 @@ import { isLive, isLeague, parseDate, fmtDay, fmtTime, penScore, evMinute, barCo
 import { Panel, Head, Skel, Wait, Empty, ErrorBox, Tabs, Stagger, Item, Reveal, Crest, CompLogo, Digit, LiveMinute, LiveDot, Watch, Form, CountUp, Icon, ease } from '../components/ui.jsx';
 import { Standings, MatchRow } from '../components/match.jsx';
 import { ShareButton } from '../components/ShareCard.jsx';
+import { multiWith } from '../lib/multi.js';
 
 export default function Match() {
   const { id, tab = 'resumo' } = useParams();
@@ -96,7 +97,8 @@ function Scoreboard({ p, camp }) {
         </div>
         {team(A, 'away')}
       </div>
-      <div className="sb-info">{d && <span>{fmtDay(d)}, {fmtTime(p)}</span>}{p.estadio && <span>{p.estadio.nome_popular}</span>}<ShareButton p={p} camp={camp} /></div>
+      <div className="sb-info">{d && <span>{fmtDay(d)}, {fmtTime(p)}</span>}{p.estadio && <span>{p.estadio.nome_popular}</span>}<ShareButton p={p} camp={camp} />
+        <Link to={multiWith(p.partida_id)} className="sb-share" title="Ver este jogo lado a lado com outros">▦ <span>Multijogo</span></Link></div>
     </section>
   );
 }

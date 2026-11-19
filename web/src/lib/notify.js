@@ -59,10 +59,16 @@ export function toggleNbaTeam(t) { // t = { id, nome, logo }
   setNotif({ nbaTimes: nbaIds(n).includes(+t.id) ? n.nbaTimes.filter((x) => +(x.id ?? x) !== +t.id) : [...n.nbaTimes, { id: +t.id, nome: t.nome, logo: t.logo }] });
 }
 
+/* ---------- multijogo: jogos abertos lado a lado sempre avisam gol e fim ---------- */
+const watching = new Set();
+export const setWatching = (ids) => { watching.clear(); (ids || []).forEach((i) => watching.add(+i)); };
+export const isWatching = (id) => watching.has(+id);
+
 /* ---------- quais eventos avisar ---------- */
 const KIND = { 'Começou': 'inicio', 'Intervalo': 'intervalo', 'Fim de jogo': 'fim' };
 export function wantsMatch(p, kind) {
   const n = getNotif();
+  if (p && watching.has(+p.partida_id) && (kind === 'gol' || kind === 'fim' || n.tipos[kind])) return true;
   if (!n.tipos[kind] || !p) return false;
   const cid = p.campeonato && +p.campeonato.campeonato_id;
   return n.comps.includes(cid) || followsTeam(p.time_mandante) || followsTeam(p.time_visitante);

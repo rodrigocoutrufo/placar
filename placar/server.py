@@ -46,7 +46,7 @@ from pathlib import Path
 from . import config
 from .ai import client as ai
 from .ai import news as ai_news
-from .core import auth, identity, news_filter, prob
+from .core import auth, bolao, identity, news_filter, prob
 from .sources import espn, footballdata, news_rss, stadium, transfermarkt
 from . import ai_routes, sports
 
@@ -699,6 +699,15 @@ def _fix_logo(c):
     return c
 
 
+def _bolao_match(pid: int):
+    """Dados de uma partida para o bolão (início e placar), pelas mesmas fontes do site."""
+    st, body, _ = route(f"/partidas/{pid}")
+    return json.loads(body) if st == 200 else None
+
+
+bolao.fetch_match = _bolao_match
+
+
 def route(path: str, query: dict | None = None) -> tuple[int, bytes, str]:
     st, body, src = _route(path, query)
     if st == 200 and re.match(r"^/campeonatos(/\d+)?$", path):  # logos atuais por cima do que a fonte mandou
@@ -1201,6 +1210,7 @@ def scheduler():
         every("noticias", 600, lambda: route("/noticias", {"por_pagina": "20"}))
         every("craques", 1800, craques_pool)  # minijogo Craque do dia pronto antes do primeiro jogador
         every("forcas", 1500, rating_index)  # probabilidades das partidas prontas antes do visitante pedir
+        every("bolao", 300, bolao.refresh_results)  # placar dos jogos com palpite do bolão (para os pontos)
         every("limpeza", 3600, auth.cleanup)  # sessões, códigos e desafios vencidos
         every("f1-analise", 3 * 3600, f1_warm)  # análise da última corrida (OpenF1) pronta antes do visitante pedir
         if ai.background_news():
@@ -1224,6 +1234,7 @@ STATUS_TOKEN = os.environ.get("STATUS_TOKEN", "")
 RATE = {"api": (int(os.environ.get("RATE_API_MIN", "240")), 60), "heavy": (int(os.environ.get("RATE_HEAVY_MIN", "20")), 60)}
 HEAVY = re.compile(r"^/(jogador-tm|time-tm|estadio)$")
 AUTH_PATH = re.compile(r"^/(auth|conta)(/[\w-]+){1,2}$")
+BOLAO_PATH = re.compile(r"^/bolao(/[\w-]+){1,3}$")  # bolão com amigos (core/bolao.py), precisa de conta
 AI_POST = {"/ia/perguntar"}
 _frames = []  # iframes de fora liberados um a um
 if auth.TURNSTILE_SITE and auth.TURNSTILE_SECRET:  # captcha da Cloudflare: libera só o domínio dela
@@ -1377,7 +1388,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             parsed = urllib.parse.urlsplit(self.path)
             path = parsed.path[4:].rstrip("/") if parsed.path.startswith("/api/") else ""
-            if not AUTH_PATH.match(path) and path not in AI_POST:
+            if not AUTH_PATH.match(path) and not BOLAO_PATH.match(path) and path not in AI_POST:
                 return self._json(405, b'{"message":"M\\u00e9todo n\\u00e3o permitido"}', "server")
             return self._auth("POST", path, parsed)
         except (BrokenPipeError, ConnectionResetError):
@@ -1420,11 +1431,15 @@ class Handler(BaseHTTPRequestHandler):
         ctx = {"ip": self._ip(), "cookies": self._cookies(), "host": self.headers.get("Host", ""),
                "proto": "https" if fwd_proto == "https" else "http", "origin": self.headers.get("Origin"),
                "xrw": self.headers.get("X-Requested-With"), "ua": self.headers.get("User-Agent", "")}
-        if path in AI_POST:  # assistente: mesma proteção CSRF das contas (cabeçalho próprio + origem do site)
+        if path in AI_POST or (BOLAO_PATH.match(path) and method == "POST"):  # mesma proteção CSRF das contas
             origin = ctx["origin"] or ""
             if ctx["xrw"] != "placar" or (origin and urllib.parse.urlsplit(origin).netloc != ctx["host"]):
                 return self._json(403, b'{"message":"Requisi\\u00e7\\u00e3o bloqueada por seguran\\u00e7a."}', "server")
+        if path in AI_POST:  # assistente
             st, obj = ai_routes.handle_post(path, body, ctx)
+            headers = []
+        elif BOLAO_PATH.match(path):  # bolão com amigos
+            st, obj = bolao.handle(method, path, dict(urllib.parse.parse_qsl(parsed.query)), body, ctx)
             headers = []
         else:
             st, obj, headers = auth.handle(method, path, dict(urllib.parse.parse_qsl(parsed.query)), body, ctx)
@@ -1479,7 +1494,7 @@ class Handler(BaseHTTPRequestHandler):
             if st != 200:
                 return self._json(st, b'{"message":"Imagem indispon\\u00edvel"}', "server")
             return self._send(200, body, ctype, "public, max-age=604800")
-        if AUTH_PATH.match(path):
+        if AUTH_PATH.match(path) or BOLAO_PATH.match(path):
             return self._auth("GET", path, parsed)
         if path.startswith("/ia/"):  # camada de IA (ai_routes.py)
             if not _allow(ip, "api"):

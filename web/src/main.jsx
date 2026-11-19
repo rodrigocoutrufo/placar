@@ -33,6 +33,10 @@ const F1 = lazy(() => import('./pages/F1.jsx'));
 const F1Race = lazy(() => import('./pages/F1Race.jsx'));
 const ForYou = lazy(() => import('./pages/ForYou.jsx'));
 const News = lazy(() => import('./pages/News.jsx'));
+const Multi = lazy(() => import('./pages/Multi.jsx'));
+const BolaoHome = lazy(() => import('./pages/BolaoGroups.jsx').then((m) => ({ default: m.BolaoHome })));
+const BolaoGroup = lazy(() => import('./pages/BolaoGroups.jsx').then((m) => ({ default: m.BolaoGroup })));
+const BolaoJoin = lazy(() => import('./pages/BolaoGroups.jsx').then((m) => ({ default: m.BolaoJoin })));
 const Team = lazy(() => import('./pages/Team.jsx'));
 const Player = lazy(() => import('./pages/Player.jsx'));
 const Games = lazy(() => import('./pages/Games.jsx'));
@@ -96,6 +100,10 @@ function App() {
           <Route path="/f1/equipe/:id" element={<Page><F1Team /></Page>} />
           <Route path="/f1/:tab?" element={<Page><F1 /></Page>} />
           <Route path="/noticias" element={<Page><News /></Page>} />
+          <Route path="/multijogo" element={<Page><Multi /></Page>} />
+          <Route path="/bolao" element={<Page><BolaoHome /></Page>} />
+          <Route path="/bolao/grupo/:id" element={<Page><BolaoGroup /></Page>} />
+          <Route path="/bolao/entrar/:codigo" element={<Page><BolaoJoin /></Page>} />
           <Route path="/time/:id/:tab?" element={<Page><Team /></Page>} />
           <Route path="/jogador/:id" element={<Page><Player /></Page>} />
           <Route path="/minijogos/:game?" element={<Page><Games /></Page>} />

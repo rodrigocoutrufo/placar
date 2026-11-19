@@ -8,6 +8,7 @@ import { account, toggleTheme, useStoreVersion } from '../lib/store.js';
 import { Crest, Icon, LiveDot, LiveMinute, ease } from './ui.jsx';
 import { LOGO } from '../lib/themes.js';
 import { HeaderBell } from './Notify.jsx';
+import { InstallButton } from './Install.jsx';
 import { isFollowedMatch } from '../lib/follow.js';
 import { isLive } from '../lib/format.js';
 import { useSuggest } from '../lib/registry.js';
@@ -75,6 +76,7 @@ export function Header() {
             )}
           </AnimatePresence>
         </form>
+        <InstallButton />
         <HeaderBell />
         <button className="ibtn" onClick={toggleTheme} aria-label="Alternar tema" title="Tema claro/escuro">{dark ? Icon.sun : Icon.moon}</button>
         <Link className="ibtn user" to={u ? '/conta' : '/entrar'} title={u ? `Sua conta (@${u.usuario})` : 'Entrar'}>

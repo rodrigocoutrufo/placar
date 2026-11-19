@@ -381,3 +381,24 @@ img[src$="#mono"] { filter: brightness(0) invert(1); }
 .np-test .btn { justify-content: center; height: 40px; cursor: pointer; }
 .np-test .btn:disabled { opacity: .7; cursor: wait; }
 .np-test small { color: var(--mute); font-size: 12px; }
+
+/* instalar o app */
+.ibtn.install { width: auto; gap: 6px; padding: 0 12px; border: 1px solid color-mix(in srgb, var(--acc) 60%, transparent); border-radius: 999px; color: var(--acc); font: 700 13px var(--fc); text-transform: uppercase; letter-spacing: .05em; }
+.ibtn.install .ico { width: 17px; height: 17px; }
+.ibtn.install:hover { background: color-mix(in srgb, var(--acc) 14%, transparent); }
+.install-bn { position: relative; display: flex; align-items: center; gap: 14px; margin: 0 0 16px; padding: 12px 44px 12px 14px; border-radius: var(--r); background: linear-gradient(110deg, #0b3d22, #0b0c0e 70%); color: #fff; border: 1px solid rgba(255, 255, 255, .1); }
+.install-bn img { border-radius: 10px; flex: none; }
+.install-bn div { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.install-bn b { font: 800 19px var(--fc); text-transform: uppercase; }
+.install-bn small { color: rgba(255, 255, 255, .7); font-size: 13px; }
+.install-bn .btn.primary { flex: none; background: var(--acc); border-color: var(--acc); color: var(--acc-ink); cursor: pointer; }
+.install-bn .btn .ico { width: 17px; height: 17px; }
+.install-x { position: absolute; top: 6px; right: 8px; border: 0; background: none; color: rgba(255, 255, 255, .55); font-size: 20px; cursor: pointer; }
+.ios-box { max-width: 420px; }
+.ios-steps { margin: 0; padding: 16px 20px 6px 40px; display: grid; gap: 12px; font-size: 15px; line-height: 1.45; }
+.ios-note { padding: 6px 20px 18px; }
+@media (max-width: 720px) {
+  .ibtn.install span { display: none; }
+  .ibtn.install { width: 40px; padding: 0; justify-content: center; }
+  .install-bn { flex-wrap: wrap; }
+}

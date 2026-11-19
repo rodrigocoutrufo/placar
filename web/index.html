@@ -15,6 +15,8 @@
       try { t = localStorage.getItem('placar.theme'); } catch (e) {}
       if (t !== 'dark' && t !== 'light') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       document.documentElement.dataset.theme = t;
+      // pedido de instalação (Chrome/Edge/Android) pode chegar antes do app montar: guarda para o botão "Instalar"
+      window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); window.__vyraBip = e; });
     })();
   </script>
 </head>
