@@ -17,6 +17,7 @@ const NAV = [
   ['/', 'Jogos', (p) => p === '/' || p.startsWith('/partida')],
   ['/para-voce', 'Para você'],
   ['/campeonatos', 'Campeonatos', (p) => p.startsWith('/campeonato')],
+  ['/minijogos/palpites', 'Bolão', (p) => p.startsWith('/bolao') || p.startsWith('/minijogos')], // palpites, grupos com amigos e minijogos
   ['/nba', 'NBA'],
   ['/f1', 'Fórmula 1'],
   ['/noticias', 'Notícias'],
@@ -126,9 +127,18 @@ export function Ticker() {
   );
 }
 
+const trophy = (
+  <svg viewBox="0 0 24 24" className="ico" aria-hidden="true">
+    <path d="M7 4h10v4a5 5 0 0 1-10 0V4Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    <path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 13v4m-4 3h8m-6-3h4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+);
+
 export function MobileBar() {
   const { pathname } = useLocation();
-  const L = [['/', 'Jogos', Icon.ball, (p) => p === '/' || p.startsWith('/partida')], ['/campeonatos', 'Ligas', Icon.star, (p) => p.startsWith('/campeonato')], ['/nba', 'NBA', null], ['/f1', 'F1', null], ['/para-voce', 'Para você', Icon.user]];
+  const L = [['/', 'Jogos', Icon.ball, (p) => p === '/' || p.startsWith('/partida')], ['/campeonatos', 'Ligas', Icon.star, (p) => p.startsWith('/campeonato')],
+    ['/minijogos/palpites', 'Bolão', trophy, (p) => p.startsWith('/bolao') || p.startsWith('/minijogos')],
+    ['/nba', 'NBA', null], ['/f1', 'F1', null], ['/para-voce', 'Para você', Icon.user]];
   return (
     <nav className="mbar">
       {L.map(([to, label, ico, test]) => {
