@@ -44,10 +44,10 @@ def _L(slug, nome, popular, regiao, league, pais=None, tipo=None, rr=True, grupo
 # IDs 201+ para não colidir com a API Futebol (1–99) nem com a football-data (101–108)
 LEAGUES.update({
     # Brasil: estaduais
-    201: _L("bra.camp.paulista", "Campeonato Paulista", "Paulistão", "nacional", False, "Brasil", "Misto"),
-    202: _L("bra.camp.carioca", "Campeonato Carioca", "Carioca", "nacional", False, "Brasil", "Misto"),
-    203: _L("bra.camp.mineiro", "Campeonato Mineiro", "Mineiro", "nacional", False, "Brasil", "Misto"),
-    204: _L("bra.camp.gaucho", "Campeonato Gaúcho", "Gauchão", "nacional", False, "Brasil", "Misto"),
+    201: _L("bra.camp.paulista", "Campeonato Paulista", "Paulistão", "estadual", False, "Brasil", "Misto"),
+    202: _L("bra.camp.carioca", "Campeonato Carioca", "Carioca", "estadual", False, "Brasil", "Misto"),
+    203: _L("bra.camp.mineiro", "Campeonato Mineiro", "Mineiro", "estadual", False, "Brasil", "Misto"),
+    204: _L("bra.camp.gaucho", "Campeonato Gaúcho", "Gauchão", "estadual", False, "Brasil", "Misto"),
     # América do Sul: ligas nacionais
     211: _L("arg.1", "Liga Profissional Argentina", "Liga Argentina", "continental", True, "Argentina", rr=False, grupo_zona=8),
     213: _L("chi.1", "Campeonato Chileno", "Liga Chilena", "continental", True, "Chile"),
@@ -159,6 +159,7 @@ _lock = threading.Lock()
 _event_league: dict[int, int] = {}  # id ESPN do evento -> campeonato_id
 _event_stage: dict[int, int] = {}  # id ESPN do evento -> etapa (tipo da temporada na ESPN: Apertura, quartas...)
 _season_memo: dict[int, tuple] = {}
+_flights: dict[str, threading.Lock] = {}  # um download por vez para cada temporada
 _team_colors: dict[str, tuple] = {}  # id ESPN do time -> (cor, cor secundária)
 stats = {"requests": 0, "errors": 0}
 
@@ -340,8 +341,18 @@ def _year_events(slug: str, y: int) -> dict:
     url = f"{SITE}/{slug}/scoreboard?dates={y}&limit=1000"
     with _lock:
         hit = _cache.get(url)
+        flight = _flights.setdefault(url, threading.Lock())
     if hit and hit[0] > time.time():
         return hit[1]
+    with flight:  # servidor frio com várias visitas: um download por temporada; as outras esperam e reaproveitam
+        with _lock:
+            hit = _cache.get(url)
+        if hit and hit[0] > time.time():
+            return hit[1]
+        return _store_year(url)
+
+
+def _store_year(url):
     data = _get(url, 60)
     now = datetime.now(timezone.utc)
     near = any(abs((_parse_dt(e["date"]) - now).total_seconds()) < 4 * 3600 for e in data.get("events", []) if e.get("date"))

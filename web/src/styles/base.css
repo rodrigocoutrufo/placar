@@ -328,3 +328,6 @@ input { font: inherit; color: inherit; }
 
 .side .rank-row { grid-template-columns: 22px 26px minmax(0, 1fr) 46px; } .side .rbar { display: none; }
 .tbl .pts-bar { display: none; }
+
+/* logo de campeonato sem versão para fundo escuro: aparece todo branco (o servidor marca com "#mono") */
+img[src$="#mono"] { filter: brightness(0) invert(1); }

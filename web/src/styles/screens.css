@@ -100,6 +100,10 @@
 /* ---------- campeonatos (cartazes) ---------- */
 .reg { display: grid; gap: 12px; }
 .reg-title { font: 700 18px var(--fc); text-transform: uppercase; letter-spacing: .08em; color: var(--mute); }
+.reg-group { display: grid; gap: 10px; }
+.reg-group + .reg-group { margin-top: 8px; }
+.reg-sub { display: flex; align-items: center; gap: 10px; margin: 0; font: 700 14px var(--fc); text-transform: uppercase; letter-spacing: .1em; color: var(--ink2); }
+.reg-sub::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
 .poster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; perspective: 1200px; }
 .poster { border-radius: 8px; }
 .poster-in { position: relative; display: flex; flex-direction: column; justify-content: flex-end; height: 300px; padding: 20px; border-radius: 8px; overflow: hidden; color: #fff; isolation: isolate;

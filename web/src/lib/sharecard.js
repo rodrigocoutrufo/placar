@@ -9,7 +9,7 @@ export const FORMATS = {
   square: { w: 1080, h: 1080, label: 'Quadrado', hint: '1:1 · grupos e X' },
 };
 
-const proxied = (url) => (!url ? null : url.startsWith('/') ? url : `/api/img?u=${encodeURIComponent(url)}`);
+const proxied = (url) => (!url ? null : url.startsWith('/') ? url : `/api/img?u=${encodeURIComponent(url.split('#')[0])}`);
 const imgCache = new Map();
 function loadImage(url) {
   if (!url) return Promise.resolve(null);
@@ -87,7 +87,11 @@ export async function drawCard(canvas, p, camp, fmt = 'story') {
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   const compName = ((camp && (camp.nome_popular || camp.nome)) || '').toUpperCase();
   const sub = [p.rodada, p.fase && !/fase única/i.test(p.fase.nome || '') && p.fase.nome].filter(Boolean)[0] || '';
-  if (il) drawContain(ctx, il, W / 2, Y(L.comp) - 34, 90);
+  if (il) {
+    const mono = String((camp && (camp.logo_escuro || camp.logo)) || '').endsWith('#mono'); // sem versão escura: branco
+    ctx.save(); if (mono) ctx.filter = 'brightness(0) invert(1)';
+    drawContain(ctx, il, W / 2, Y(L.comp) - 34, 90); ctx.restore();
+  }
   ctx.fillStyle = '#fff'; ctx.font = fit(ctx, compName, W - 160, 46, (s) => `700 ${s}px "Barlow Condensed"`);
   ctx.fillText(compName, W / 2, Y(L.comp) + 40);
   if (sub) { ctx.fillStyle = 'rgba(255,255,255,.65)'; ctx.font = '600 28px "Inter"'; ctx.fillText(String(sub).toUpperCase(), W / 2, Y(L.comp) + 84); }

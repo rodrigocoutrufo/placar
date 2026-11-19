@@ -76,7 +76,7 @@ export function faseMatches(f) {
   return out;
 }
 export const COUNTRY = { England: 'Inglaterra', Spain: 'Espanha', Italy: 'Itália', Germany: 'Alemanha', France: 'França', Portugal: 'Portugal', Netherlands: 'Holanda', Europe: 'Europa' };
-const REGION_NAME = { nacional: 'Brasil', continental: 'América do Sul', europa: 'Europa', americas: 'América do Norte', mundo: 'Ásia', selecoes: 'Seleções' };
+const REGION_NAME = { nacional: 'Brasil', estadual: 'Estaduais', continental: 'América do Sul', europa: 'Europa', americas: 'América do Norte', mundo: 'Ásia', selecoes: 'Seleções' };
 // país da liga (football-data manda em inglês; as ligas extras da ESPN já vêm em português) ou a região
 export const regionLabel = (c) => COUNTRY[c.pais] || c.pais || REGION_NAME[c.regiao] || 'Brasil';
 export const REGIONS = Object.entries(REGION_NAME);

@@ -622,7 +622,49 @@ def agenda() -> bytes:
 
 
 # ---------------------------------------------------------------- roteamento
+# ---------------------------------------------------------------- logos dos campeonatos
+# As fontes às vezes têm o logo antigo (Paulistão com o escudo da FPF, Süper Lig "Spor Toto", Ligue 1 de antes de
+# 2024) ou uma versão "para fundo escuro" vazia (La Liga, Uruguai, Bélgica, Sul-Americana). Aqui ficam os logos
+# oficiais atuais (Wikimedia). "#mono" no fim = sem versão boa para fundo escuro: o site mostra o logo todo branco.
+def _wm(file, width=400):
+    return f"https://commons.wikimedia.org/wiki/Special:FilePath/{urllib.parse.quote(file)}?width={width}"
+
+
+LOGO_FIX = {
+    201: (P := "https://upload.wikimedia.org/wikipedia/pt/6/6b/Paulist%C3%A3o_Sil.png", P),  # Paulistão (marca atual)
+    105: (_wm("Logo Ligue 1 McDonald's 2024.svg"), _wm("Logo Ligue 1 McDonald's 2024.svg") + "#mono"),  # Ligue 1 (2024)
+    237: (_wm("Trendyol Süper Lig logo dikey.svg"), _wm("Trendyol Süper Lig logo dikey.svg") + "#mono"),  # Trendyol Süper Lig
+    102: (_wm("LaLiga 2023 Vertical Logo.svg"), _wm("LaLiga 2023 Vertical Logo.svg")),  # LaLiga (vermelho: serve nos dois fundos)
+    214: (_wm("Logo Liga AUF Uruguaya (cropped).png"), _wm("Logo Liga AUF Uruguaya (cropped).png")),  # Liga AUF (selo azul)
+    9: (None, "https://a.espncdn.com/i/leaguelogos/soccer/500/1208.png#mono"),  # Sul-Americana: a versão escura da ESPN é vazia
+    238: (None, "https://a.espncdn.com/i/leaguelogos/soccer/500/6.png#mono"),  # Liga Belga: idem
+}
+
+
+def _fix_logo(c):
+    if isinstance(c, dict) and c.get("campeonato_id") is not None:
+        fix = LOGO_FIX.get(int(c["campeonato_id"]))
+        if fix:
+            if fix[0]:
+                c["logo"] = fix[0]
+            if fix[1]:
+                c["logo_escuro"] = fix[1]
+    return c
+
+
 def route(path: str, query: dict | None = None) -> tuple[int, bytes, str]:
+    st, body, src = _route(path, query)
+    if st == 200 and re.match(r"^/campeonatos(/\d+)?$", path):  # logos atuais por cima do que a fonte mandou
+        try:
+            d = json.loads(body)
+            d = [_fix_logo(c) for c in d] if isinstance(d, list) else _fix_logo(d)
+            body = json.dumps(d, ensure_ascii=False).encode()
+        except ValueError:
+            pass
+    return st, body, src
+
+
+def _route(path: str, query: dict | None = None) -> tuple[int, bytes, str]:
     query = query or {}
     camps, ids = plan()
 
@@ -1125,7 +1167,7 @@ _hits_lock = threading.Lock()
 
 # ---------------------------------------------------------------- proxy de imagens (escudos e logos)
 IMG_HOSTS = ("a.espncdn.com", "crests.football-data.org", "cdn.api-futebol.com.br", "media.formula1.com", "flagcdn.com",
-             "upload.wikimedia.org", "img.a.transfermarkt.technology", "tmssl.akamaized.net")
+             "upload.wikimedia.org", "commons.wikimedia.org", "thumb.wikimedia.org", "img.a.transfermarkt.technology", "tmssl.akamaized.net")
 IMG_MAX = 2_000_000
 _img_cache: dict[str, tuple[float, bytes, str]] = {}
 _img_lock = threading.Lock()
