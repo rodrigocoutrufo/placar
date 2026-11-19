@@ -6,9 +6,10 @@ import { useApi } from '../lib/api.js';
 import { useComps, useAgenda, featured, compOf, compRank } from '../lib/data.js';
 import { dayKey, parseDate, flattenTable, isLeague, isLive, fmtDT, timeAgo, parseISO } from '../lib/format.js';
 import { followsComp, followsTeam } from '../lib/notify.js';
+import { homeComps, followedComps, isFollowedMatch, followsCompHome, toggleFollowComp, DEFAULT_COMPS } from '../lib/follow.js';
 import { compTheme, LOGO } from '../lib/themes.js';
 import { Taste, getFavs, useStoreVersion } from '../lib/store.js';
-import { Panel, Head, Skel, Empty, Stagger, Item, CompLogo, Crest, Countdown, LiveDot, Icon, ScrollRow, ease } from '../components/ui.jsx';
+import { Panel, Head, Skel, Empty, Stagger, Item, CompLogo, Crest, Countdown, LiveDot, Icon, ScrollRow, isDark, ease } from '../components/ui.jsx';
 import { ScoreCard, Rail, CompBlocks, Standings } from '../components/match.jsx';
 
 export default function Home() {
@@ -18,7 +19,7 @@ export default function Home() {
   const { data: agenda } = useAgenda(comps);
   const [params, setParams] = useSearchParams();
   const today = dayKey(new Date());
-  const filter = params.get('f') || 'all';
+  const filter = { mine: 'seg' }[params.get('f')] || params.get('f') || 'seg'; // padrão: o que a pessoa segue
   const [manual, setManual] = useState({}); // campeonatos que a pessoa abriu/fechou na mão
 
   const liveMap = useMemo(() => new Map(live.map((p) => [p.partida_id, p])), [live]);
@@ -39,10 +40,19 @@ export default function Home() {
   }, [sel, days.length]);
 
   if (!comps) return <><Skel h={260} /><Skel h={500} /></>;
-  const feat = agenda ? featured(live, merged, comps) : live;
+  // o que a pessoa segue (campeonatos ★ e times; sem nada seguido, os principais)
+  const hc = homeComps();
+  const rel = (ps) => ps.filter((p) => isFollowedMatch(p, hc));
+  const liveMine = rel(live);
+  const mergedMine = rel(merged);
+  // destaque: só o que a pessoa segue (ao vivo, próximos e recentes); jogo de outra liga só se não houver nada
+  const nothing = !liveMine.length && !mergedMine.length;
+  const heroLive = nothing ? live : liveMine;
+  const feat = agenda ? featured(heroLive, nothing ? merged : mergedMine, comps) : heroLive;
   const favIds = new Set(Object.keys(getFavs()).map(Number));
-  let list = filter === 'live' ? live : (byDay.get(sel) || []);
-  if (filter === 'mine') list = (byDay.get(sel) || []).filter((p) => favIds.has(+p.time_mandante.time_id) || favIds.has(+p.time_visitante.time_id) || Taste.team(p.time_mandante) + Taste.team(p.time_visitante) >= 1);
+  const dayAll = byDay.get(sel) || [];
+  const list = filter === 'live' ? live : filter === 'all' ? dayAll : rel(dayAll);
+  const hidden = filter === 'seg' ? dayAll.length - list.length : 0;
   const groups = new Map();
   [...list].sort((a, b) => (parseDate(a) || 0) - (parseDate(b) || 0)).forEach((p) => {
     const id = p.campeonato ? p.campeonato.campeonato_id : 0;
@@ -52,10 +62,10 @@ export default function Home() {
   const order = (id) => { const i = comps.findIndex((c) => c.campeonato_id === id); return compRank(id, i < 0 ? 99 : i); };
   const blocks = [...groups.entries()].sort((a, b) => order(a[0]) - order(b[0])).map(([, g]) => g);
   // dia cheio (muitos campeonatos): abre só o que importa para a pessoa; o resto vira uma linha por campeonato
-  const many = filter === 'all' && blocks.length > 6;
+  const many = filter !== 'live' && blocks.length > 6;
   const important = (g) => {
     const id = +g.c.campeonato_id;
-    return TOP.has(id) || followsComp(id) || Taste.score('c', id) >= 3 || g.ps.some((p) => isLive(p)
+    return TOP.has(id) || followsCompHome(id) || followsComp(id) || Taste.score('c', id) >= 3 || g.ps.some((p) => isLive(p)
       || favIds.has(+p.time_mandante.time_id) || favIds.has(+p.time_visitante.time_id) || followsTeam(p.time_mandante) || followsTeam(p.time_visitante));
   };
   const auto = new Map(blocks.map((g) => [g.c.campeonato_id || g.c.nome, !many || important(g)]));
@@ -74,16 +84,17 @@ export default function Home() {
       <section className="home-hero">
         <div className="hh-head">
           <motion.h1 initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, ease }}>
-            {live.length ? <><LiveDot /> Ao vivo agora</> : 'Em destaque'}
+            {heroLive.length ? <><LiveDot /> Ao vivo agora</> : 'Em destaque'}
           </motion.h1>
-          <span>{live.length ? `${live.length} ${live.length === 1 ? 'jogo rolando' : 'jogos rolando'}` : 'Os jogos que importam hoje'} · arraste para ver mais</span>
+          <span>{heroLive.length ? `${heroLive.length} ${heroLive.length === 1 ? 'jogo rolando' : 'jogos rolando'}` : followedComps().length ? 'Do que você segue' : 'Os jogos que importam hoje'} · arraste para ver mais</span>
         </div>
         {feat.length ? (
           <Rail>{feat.map((p) => <ScoreCard key={p.partida_id} p={p} comp={compOf(comps, p)} />)}</Rail>
         ) : <Skel h={170} />}
       </section>
 
-      <CompStrip comps={comps} />
+      <PickComps comps={comps} />
+      <CompStrip comps={comps.filter((c) => hc.includes(+c.campeonato_id))} total={comps.length} />
 
       <div className="grid-main">
         <div className="col">
@@ -105,8 +116,8 @@ export default function Home() {
               </div>
             </ScrollRow>
             <div className="filters">
-              {[['all', 'Todos'], ['live', `Ao vivo · ${live.length}`], ['mine', 'Meus times']].map(([k, l]) => (
-                <button key={k} className={`chip ${filter === k ? 'on' : ''}`} onClick={() => setQ('f', k === 'all' ? null : k)}>{k === 'live' && <LiveDot />}{l}</button>
+              {[['seg', 'Seguindo'], ['all', `Todos · ${dayAll.length}`], ['live', `Ao vivo · ${live.length}`]].map(([k, l]) => (
+                <button key={k} className={`chip ${filter === k ? 'on' : ''}`} onClick={() => setQ('f', k === 'seg' ? null : k)}>{k === 'live' && <LiveDot />}{k === 'seg' && <span aria-hidden="true">★</span>}{l}</button>
               ))}
             </div>
             {many && (
@@ -126,7 +137,12 @@ export default function Home() {
             )}
             {!agenda && filter !== 'live' ? <div className="pad"><Skel h={300} /></div>
               : blocks.length ? <CompBlocks key={`${sel}-${filter}`} groups={blocks} isOpen={isOpen} onToggle={many ? toggle : null} />
-                : <Empty>{filter === 'live' ? 'Nenhum jogo em andamento agora.' : filter === 'mine' ? 'Nenhum jogo dos seus times neste dia.' : 'Nenhum jogo neste dia.'}</Empty>}
+                : <Empty>{filter === 'live' ? 'Nenhum jogo em andamento agora.' : filter === 'seg' ? 'Nada do que você segue joga neste dia.' : 'Nenhum jogo neste dia.'}</Empty>}
+            {hidden > 0 && (
+              <button type="button" className="more-games" onClick={() => setQ('f', 'all')}>
+                + {hidden} {hidden === 1 ? 'jogo' : 'jogos'} de outros campeonatos neste dia <b>Ver todos</b>
+              </button>
+            )}
           </Panel>
         </div>
         <aside className="col side">
@@ -144,7 +160,7 @@ export default function Home() {
 const TOP = new Set([10, 14, 2, 7, 9, 106, 101, 102, 103, 104, 105]);
 
 /* faixa de campeonatos: cada um com a sua cor e o logo oficial */
-function CompStrip({ comps }) {
+function CompStrip({ comps, total }) {
   return (
     <ScrollRow><Stagger className="cstrip">
       {comps.map((c) => {
@@ -158,7 +174,39 @@ function CompStrip({ comps }) {
           </Item>
         );
       })}
+      <Item key="todos">
+        <Link to="/campeonatos" className="ctile more"><span className="ct-plus">+</span><span>Todos os {total}<small>Seguir outros</small></span></Link>
+      </Item>
     </Stagger></ScrollRow>
+  );
+}
+
+// quem ainda não segue nenhum campeonato: escolhe com um toque (some ao tocar em "Pronto")
+const PICKS = [...DEFAULT_COMPS, 231, 211, 221, 201, 233, 251];
+function PickComps({ comps }) {
+  const [open, setOpen] = useState(() => !followedComps().length);
+  if (!open) return null;
+  const list = PICKS.map((id) => comps.find((c) => +c.campeonato_id === id)).filter(Boolean);
+  const n = followedComps().length;
+  return (
+    <motion.section className="pick" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease }}>
+      <div className="pick-head">
+        <div><b>Escolha seus campeonatos</b><small>A página inicial mostra o que você segue, e você recebe os avisos de gol deles. Dá para mudar depois.</small></div>
+        <button type="button" className="btn primary" onClick={() => setOpen(false)}>{n ? `Pronto (${n})` : 'Agora não'}</button>
+      </div>
+      <div className="chips-wrap">
+        {list.map((c) => {
+          const on = followsCompHome(c.campeonato_id);
+          return (
+            <button key={c.campeonato_id} type="button" className={`chip ${on ? 'on' : ''}`} onClick={() => toggleFollowComp(c.campeonato_id)} aria-pressed={on}>
+              <CompLogo c={c} size={16} dark={on ? !isDark() : isDark()} />
+              {c.nome_popular || c.nome}{on ? ' ★' : ''}
+            </button>
+          );
+        })}
+        <Link to="/campeonatos" className="chip">Ver todos os {comps.length}</Link>
+      </div>
+    </motion.section>
   );
 }
 

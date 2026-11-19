@@ -48,6 +48,20 @@ function onF1(e) {
 }
 export const dismissGoal = (key) => { snapGoals = snapGoals.filter((x) => x.key !== key); emit(); };
 
+// Aviso de teste (painel de notificações): o mesmo caminho de um gol de verdade, com um jogo ao vivo se houver.
+// Na tela na hora; do navegador depois de `delay` ms, para dar tempo de trocar de aba ou minimizar.
+export function testAlert(delay = 5000) {
+  const real = state.live.find((p) => p.time_mandante && p.time_visitante);
+  const t = (id, nome, sigla, esc) => ({ time_id: id, nome_popular: nome, sigla, escudo: `https://a.espncdn.com/i/teamlogos/soccer/500/${esc}.png` });
+  const p = real ? { ...real, placar_mandante: (real.placar_mandante || 0) + 1 }
+    : { partida_id: 0, campeonato: { campeonato_id: 10, nome_popular: 'Brasileirão' }, status: 'andamento',
+      time_mandante: t(900000819, 'Flamengo', 'FLA', 819), time_visitante: t(900002029, 'Palmeiras', 'PAL', 2029), placar_mandante: 1, placar_visitante: 0 };
+  const g = { partida: p, lado: 'mandante', time: p.time_mandante, autor: { nome: 'Teste do Vyra', minuto: "90'" } };
+  pushAlert({ kind: 'gol', id: `teste-${Date.now()}`, ...g });
+  setTimeout(() => systemNotify(`Gol do ${g.time.nome_popular}! (teste)`, `${score(p)} · notificação de teste do Vyra`,
+    { icon: g.time.escudo, tag: 'teste', url: '/#/', force: true }), delay);
+}
+
 let es = null, fails = 0;
 function connect() {
   if (!('EventSource' in window) || es) return;

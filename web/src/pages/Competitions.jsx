@@ -4,10 +4,14 @@ import { motion } from 'framer-motion';
 import { useComps } from '../lib/data.js';
 import { REGIONS, isLeague, regionGroups } from '../lib/format.js';
 import { compTheme, compLogoDark } from '../lib/themes.js';
-import { Skel, Stagger, Item, Tilt, ease } from '../components/ui.jsx';
+import { Skel, Stagger, Item, Tilt, Icon, ease } from '../components/ui.jsx';
+import { followsCompHome, toggleFollowComp } from '../lib/follow.js';
+import { useStoreVersion } from '../lib/store.js';
 
 function Poster({ c }) {
+  useStoreVersion();
   const th = compTheme(c);
+  const on = followsCompHome(c.campeonato_id);
   const prog = c.jogos_total ? Math.round((c.jogos_disputados / c.jogos_total) * 100) : null;
   return (
     <Item>
@@ -24,6 +28,8 @@ function Poster({ c }) {
           {prog != null && <span className="poster-prog"><motion.i initial={{ width: 0 }} animate={{ width: `${prog}%` }} transition={{ duration: 1, ease, delay: 0.3 }} /></span>}
           <span className="scard-glare" />
         </Link>
+        <button type="button" className={`poster-star ${on ? 'on' : ''}`} onClick={() => toggleFollowComp(c.campeonato_id)} aria-pressed={on}
+          aria-label={on ? `Deixar de seguir ${c.nome_popular}` : `Seguir ${c.nome_popular}`} title={on ? 'Seguindo (aparece na página inicial)' : 'Seguir'}>{Icon.star}</button>
       </Tilt>
     </Item>
   );

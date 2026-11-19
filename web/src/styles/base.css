@@ -261,7 +261,7 @@ input { font: inherit; color: inherit; }
 .mbar { display: none; }
 
 /* ---------- avisos de gol ---------- */
-.toasts { position: fixed; top: calc(var(--hh) + 48px); right: 18px; z-index: 90; display: grid; gap: 10px; width: min(380px, calc(100vw - 36px)); }
+.toasts { position: fixed; top: calc(var(--hh) + 48px); right: 18px; z-index: 230; display: grid; gap: 10px; width: min(380px, calc(100vw - 36px)); }
 .goal { display: flex; gap: 14px; align-items: center; padding: 14px 16px; background: #0b0c0e; color: #fff; border-left: 5px solid var(--live); border-radius: 4px; box-shadow: 0 20px 50px -14px rgba(0, 0, 0, .6); cursor: pointer; }
 .goal b { display: block; font: 800 italic 24px/1 var(--fc); letter-spacing: .01em; }
 .goal span { display: block; margin-top: 4px; font-size: 13.5px; color: rgba(255, 255, 255, .8); }
@@ -377,3 +377,7 @@ img[src$="#mono"] { filter: brightness(0) invert(1); }
 .np-item button { width: 24px; height: 24px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--mute); font-size: 16px; cursor: pointer; }
 .np-item button:hover { background: var(--pan2); color: var(--ink); }
 .np-item .np-bell .ico { width: 15px; height: 15px; }
+.np-test { display: grid; gap: 6px; }
+.np-test .btn { justify-content: center; height: 40px; cursor: pointer; }
+.np-test .btn:disabled { opacity: .7; cursor: wait; }
+.np-test small { color: var(--mute); font-size: 12px; }

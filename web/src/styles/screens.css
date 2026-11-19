@@ -546,3 +546,27 @@ a.fchip:hover { border-color: var(--hl); color: var(--hl); }
 .cb-all { flex: none; height: 30px; padding: 0 12px; border: 1px solid var(--rule2); border-radius: 999px; background: transparent; color: var(--ink2); font: 700 12.5px/1 var(--fc); text-transform: uppercase; cursor: pointer; }
 .cb-all:hover { color: var(--ink); border-color: var(--ink2); }
 .cblock { scroll-margin-top: calc(var(--hh) + 56px); }
+
+/* página inicial: o que a pessoa segue */
+.ctile.more { border: 1px dashed var(--rule2); background: transparent; color: var(--ink2); }
+.ctile.more:hover { color: var(--ink); border-color: var(--ink2); }
+.ctile.more span { display: grid; line-height: 1.1; }
+.ctile.more small { font: 500 11px var(--f); text-transform: none; letter-spacing: 0; color: var(--mute); }
+.ctile .ct-plus { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--rule2); font: 700 20px/1 var(--fc); }
+.pick { display: grid; gap: 12px; margin: 4px 0 18px; padding: 16px 18px; border: 1px solid color-mix(in srgb, var(--acc) 40%, var(--rule2)); border-radius: var(--r); background: linear-gradient(120deg, color-mix(in srgb, var(--acc) 10%, var(--pan)), var(--pan) 60%); }
+.pick-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.pick-head > div { display: grid; gap: 3px; }
+.pick-head b { font: 800 22px var(--fc); text-transform: uppercase; }
+.pick-head small { color: var(--mute); font-size: 13px; }
+.pick-head .btn.primary { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); cursor: pointer; }
+.pick .chip { cursor: pointer; }
+.more-games { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 14px 16px; border: 0; border-top: 1px solid var(--rule); background: transparent; color: var(--mute); font-size: 13.5px; cursor: pointer; }
+.more-games b { color: var(--hl); font: 700 13.5px var(--fc); text-transform: uppercase; letter-spacing: .04em; }
+.more-games:hover { background: var(--pan2); color: var(--ink); }
+.poster { position: relative; }
+.poster-star { position: absolute; top: 10px; right: 10px; z-index: 3; width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid rgba(255, 255, 255, .28); border-radius: 50%; background: rgba(0, 0, 0, .35); color: #fff; cursor: pointer; backdrop-filter: blur(4px); transition: transform .2s; }
+.poster-star:hover { transform: scale(1.08); }
+.poster-star .ico { width: 17px; height: 17px; }
+.poster-star.on { background: #fff; border-color: #fff; color: #111; }
+.poster-star.on .ico path { fill: #f5c518; stroke: #f5c518; }
+.poster-grid.compact .poster-star { top: auto; bottom: 10px; width: 28px; height: 28px; }

@@ -6,6 +6,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useStoreVersion, getFavs } from '../lib/store.js';
 import { getNotif, setNotif, toggleComp, toggleTeam, toggleNbaTeam, followsTeam, browserSupport, browserPermission, enableBrowser } from '../lib/notify.js';
 import { useComps } from '../lib/data.js';
+import { followsCompHome, toggleFollowComp } from '../lib/follow.js';
+import { Icon } from './ui.jsx';
+import { testAlert } from '../lib/live.js';
 import { LOGO } from '../lib/themes.js';
 import { Crest, CompLogo, isDark, ease } from './ui.jsx';
 
@@ -15,6 +18,18 @@ export const bellIcon = (on) => (
     <path d="M10 20.5a2.2 2.2 0 0 0 4 0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
   </svg>
 );
+
+// "★ Seguir" campeonato: aparece na página inicial e liga os avisos (o sino ao lado silencia)
+export function FollowComp({ id, className = '' }) {
+  useStoreVersion();
+  const on = followsCompHome(id);
+  return (
+    <motion.button type="button" className={`follow ${on ? 'on' : ''} ${className}`} onClick={() => toggleFollowComp(id)} whileTap={{ scale: 0.92 }} aria-pressed={on}>
+      <motion.span key={String(on)} initial={{ scale: 0.4, rotate: -90 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 400, damping: 15 }}>{Icon.star}</motion.span>
+      {on ? 'Seguindo' : 'Seguir'}
+    </motion.button>
+  );
+}
 
 // botão "Avisar" (no cabeçalho do campeonato, do time, da NBA e da F1)
 // on: booleano ou função (avaliada aqui dentro: o sino se atualiza sozinho quando a preferência muda)
@@ -36,6 +51,25 @@ const Switch = ({ on, onChange, children, hint }) => (
     <button type="button" role="switch" aria-checked={on} className={`sw ${on ? 'on' : ''}`} onClick={() => onChange(!on)}><i /></button>
   </label>
 );
+
+// manda um gol de mentira: aparece na tela na hora e, se o navegador permitir, como notificação em 5 s
+function TestButton({ perm }) {
+  const [left, setLeft] = useState(0);
+  useEffect(() => {
+    if (!left) return undefined;
+    const t = setTimeout(() => setLeft((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [left]);
+  const go = () => { testAlert(5000); setLeft(5); };
+  return (
+    <div className="np-test">
+      <button type="button" className="btn" onClick={go} disabled={left > 0}>{left > 0 ? `Notificação em ${left} s…` : 'Enviar aviso de teste'}</button>
+      <small>{perm === 'granted'
+        ? (left > 0 ? 'Troque de aba ou minimize o navegador para ver a notificação do sistema.' : 'Mostra um gol na tela agora e, 5 s depois, a notificação do navegador.')
+        : 'Mostra um gol de teste na tela. Ative as notificações do navegador para testar também a do sistema.'}</small>
+    </div>
+  );
+}
 
 function Panel({ onClose }) {
   useStoreVersion();
@@ -65,6 +99,7 @@ function Panel({ onClose }) {
               : perm === 'granted' ? <Switch on={n.navegador} onChange={(v) => setNotif({ navegador: v })} hint="Com o site aberto em outra aba ou minimizado">Notificações do navegador</Switch>
                 : perm === 'denied' ? <p className="np-note">As notificações estão bloqueadas para este site. Libere no cadeado ao lado do endereço.</p>
                   : <button type="button" className="btn primary np-ask" onClick={askBrowser}>{bellIcon(true)} Ativar notificações do navegador</button>}
+            <TestButton perm={perm} />
             <p className="np-note">Com o site fechado ainda não chegam: isso precisa do site no ar (hospedagem) e de notificação push.</p>
           </section>
           <section>

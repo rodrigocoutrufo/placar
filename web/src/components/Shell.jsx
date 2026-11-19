@@ -8,6 +8,7 @@ import { account, toggleTheme, useStoreVersion } from '../lib/store.js';
 import { Crest, Icon, LiveDot, LiveMinute, ease } from './ui.jsx';
 import { LOGO } from '../lib/themes.js';
 import { HeaderBell } from './Notify.jsx';
+import { isFollowedMatch } from '../lib/follow.js';
 import { isLive } from '../lib/format.js';
 import { useSuggest } from '../lib/registry.js';
 
@@ -86,7 +87,8 @@ export function Header() {
 
 /* faixa de placares rolando, estilo transmissão de TV */
 export function Ticker() {
-  const live = useLive();
+  useStoreVersion(); // seguir/deixar de seguir muda a faixa
+  const live = useLive().filter((p) => isFollowedMatch(p)); // futebol: só o que a pessoa segue (ou os principais)
   const { data: nba } = useApi('/esportes/nba/jogos', { ttl: 60_000, refetch: 60_000 });
   const items = [
     ...live.map((p) => ({ k: `f${p.partida_id}`, to: `/partida/${p.partida_id}`, live: true, a: p.time_mandante, b: p.time_visitante, ga: p.placar_mandante ?? 0, gb: p.placar_visitante ?? 0, st: <LiveMinute p={p} /> })),

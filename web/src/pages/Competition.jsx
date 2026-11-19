@@ -10,7 +10,7 @@ import { compLogoDark } from '../lib/themes.js';
 import { Panel, Head, Skel, Wait, Empty, ErrorBox, Tabs, Stagger, Item, Watch, CountUp, Icon, LiveDot, ease } from '../components/ui.jsx';
 import { Chances, Simulator, Bracket, CompStats, MovingTable, liveStandings } from './CompTabs.jsx';
 import { Standings, RankList, MatchRow } from '../components/match.jsx';
-import { Bell } from '../components/Notify.jsx';
+import { Bell, FollowComp } from '../components/Notify.jsx';
 import { followsComp, toggleComp } from '../lib/notify.js';
 
 export default function Competition() {
@@ -60,7 +60,10 @@ export default function Competition() {
               {c.jogos_total ? <span><b><CountUp value={c.jogos_disputados} /></b> de {c.jogos_total} jogos</span> : null}
             </motion.div>
             {prog != null && <div className="to-prog"><motion.i initial={{ width: 0 }} animate={{ width: `${prog}%` }} transition={{ duration: 1.2, ease, delay: 0.4 }} /></div>}
-            <Bell on={() => followsComp(id)} onClick={() => toggleComp(id)} label="Avisar jogos" onLabel="Avisando jogos" className="on-dark" />
+            <div className="hero-acts">
+              <FollowComp id={id} />
+              <Bell on={() => followsComp(id)} onClick={() => toggleComp(id)} label="Avisar jogos" onLabel="Avisando jogos" className="on-dark" />
+            </div>
           </div>
         </div>
       </section>

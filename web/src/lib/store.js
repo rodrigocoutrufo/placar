@@ -78,7 +78,7 @@ export function toggleTheme() {
 }
 
 /* ---------- sincronização com a conta (mesmo formato do app clássico) ---------- */
-const SYNC_RX = /^placar\.(favs|palpites|alerts|notif|theme|gostos|craque\.[\w.-]+|sim\.\d+|pen[\w.-]*|game\.[\w.-]+)$/;
+const SYNC_RX = /^placar\.(favs|campeonatos|palpites|alerts|notif|theme|gostos|craque\.[\w.-]+|sim\.\d+|pen[\w.-]*|game\.[\w.-]+)$/;
 export const account = { user: null, syncedAt: null };
 let syncTimer = null;
 function localData() {

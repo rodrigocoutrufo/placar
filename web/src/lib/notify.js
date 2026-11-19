@@ -84,8 +84,9 @@ export async function enableBrowser() {
   setNotif({ navegador: r === 'granted' });
   return r;
 }
-export function systemNotify(title, body, { icon, tag, url } = {}) {
-  if (!getNotif().navegador || browserPermission() !== 'granted' || !document.hidden) return; // com a aba à vista, basta o aviso do site
+export function systemNotify(title, body, { icon, tag, url, force = false } = {}) {
+  if (browserPermission() !== 'granted') return;
+  if (!force && (!getNotif().navegador || !document.hidden)) return; // com a aba à vista, basta o aviso do site (force: teste)
   const opts = { body, icon: icon || '/icons/icon-192.png', badge: '/icons/icon-192.png', tag, data: { url: url || '/' } };
   const show = (reg) => (reg ? reg.showNotification(title, opts) : new Notification(title, opts));
   if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.ready.then(show).catch(() => show(null));
