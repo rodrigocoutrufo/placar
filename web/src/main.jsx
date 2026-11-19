@@ -19,6 +19,7 @@ import { startLive } from './lib/live.js';
 import { loadAccount } from './lib/store.js';
 import { Mode } from './lib/mode.js';
 import { Header, Ticker, MobileBar, Footer, GoalToasts, NotFound } from './components/Shell.jsx';
+import { UpdateNotice } from './components/Update.jsx';
 import Intro from './components/Intro.jsx';
 import Assistant from './components/Assistant.jsx';
 import { ease, QueryBoundary } from './components/ui.jsx';
@@ -122,6 +123,7 @@ function App() {
       <Footer />
       <MobileBar />
       <GoalToasts />
+      <UpdateNotice />
       <Assistant />
       <Intro />
     </>

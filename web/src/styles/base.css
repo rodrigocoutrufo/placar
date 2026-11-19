@@ -402,3 +402,10 @@ img[src$="#mono"] { filter: brightness(0) invert(1); }
   .ibtn.install { width: 40px; padding: 0; justify-content: center; }
   .install-bn { flex-wrap: wrap; }
 }
+
+/* aviso de versão nova do site */
+.upd { position: fixed; left: 50%; bottom: 18px; z-index: 240; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; width: max-content; max-width: calc(100vw - 32px); padding: 10px 12px 10px 16px; border-radius: 10px; background: #0b0c0e; color: #fff; border: 1px solid rgba(255, 255, 255, .14); box-shadow: 0 18px 50px -12px rgba(0, 0, 0, .6); font-size: 14px; }
+.upd b { font-weight: 700; }
+.upd .btn.primary { height: 34px; background: var(--acc); border-color: var(--acc); color: var(--acc-ink); cursor: pointer; }
+.upd-x { border: 0; background: none; color: rgba(255, 255, 255, .55); font-size: 20px; cursor: pointer; }
+@media (max-width: 760px) { .upd { bottom: 76px; flex-wrap: wrap; } }
