@@ -66,16 +66,19 @@ export function Header() {
             );
           })}
         </nav>
+        {/* sem espaço (campeonato aberto, tela menor): vira uma lupa que abre por cima do menu */}
+        <div className="srch-wrap">
         <form className="srch" onSubmit={(e) => { e.preventDefault(); if (q.trim()) { navigate(`/busca/${encodeURIComponent(q.trim())}`); setQ(''); } }}>
-          {Icon.search}<input value={q} onChange={(e) => setQ(e.target.value)} onBlur={() => setTimeout(() => setQ(''), 200)} placeholder="Buscar times e jogadores" aria-label="Buscar" />
-          <AnimatePresence>
-            {sugg && (
-              <motion.div className="srch-sugg" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}>
-                {sugg.length ? sugg.map((x) => <Link key={x.k} to={x.to} onClick={() => setQ('')}>{x.t && <Crest t={x.t} size={20} />}<span>{x.label}</span><small>{x.kind}</small></Link>) : <span className="none">Nada encontrado</span>}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </form>
+            <label htmlFor="busca" className="srch-ico" title="Buscar">{Icon.search}</label><input id="busca" value={q} onChange={(e) => setQ(e.target.value)} onBlur={() => setTimeout(() => setQ(''), 200)} placeholder="Buscar times e jogadores" aria-label="Buscar" />
+            <AnimatePresence>
+              {sugg && (
+                <motion.div className="srch-sugg" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}>
+                  {sugg.length ? sugg.map((x) => <Link key={x.k} to={x.to} onClick={() => setQ('')}>{x.t && <Crest t={x.t} size={20} />}<span>{x.label}</span><small>{x.kind}</small></Link>) : <span className="none">Nada encontrado</span>}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </form>
+        </div>
         <InstallButton />
         <HeaderBell />
         <button className="ibtn" onClick={toggleTheme} aria-label="Alternar tema" title="Tema claro/escuro">{dark ? Icon.sun : Icon.moon}</button>
