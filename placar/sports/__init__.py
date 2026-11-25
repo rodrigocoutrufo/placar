@@ -5,11 +5,13 @@ import re
 
 from .common import NotFound, stats
 from .f1 import _espn_weekend as f1_weekend
+from .f1 import identify as f1_identify
 from .f1 import f1_driver, f1_live, f1_overview, f1_race, f1_race_analysis, f1_team
+from .f1_circuit import circuit_info as f1_circuit
 from .f1_season import f1_compare, f1_season
 from .nba import nba_game, nba_live, nba_player, nba_scoreboard, nba_standings, nba_team
 
-__all__ = ["handle", "live_summary", "stats", "nba_scoreboard", "f1_weekend"]
+__all__ = ["handle", "live_summary", "stats", "nba_scoreboard", "f1_weekend", "f1_identify"]
 
 
 # ================================================================ rotas
@@ -26,6 +28,7 @@ ROUTES = [
     (re.compile(r"^/f1/comparar/([a-z_]+)/([a-z_]+)$"), lambda m, q: f1_compare(m.group(1), m.group(2))),
     (re.compile(r"^/f1/corrida/(\d+)$"), lambda m, q: f1_race(int(m.group(1)))),
     (re.compile(r"^/f1/corrida/(\d+)/analise$"), lambda m, q: f1_race_analysis(int(m.group(1)))),
+    (re.compile(r"^/f1/corrida/(\d+)/circuito$"), lambda m, q: f1_circuit(int(m.group(1)))),
 ]
 
 

@@ -183,7 +183,8 @@ export function GoalToasts() {
     }
     if (a.kind === 'f1') {
       return { to: '/f1', img: <img className="t-logo" src={LOGO.f1} alt="" />, title: `F1 · ${a.sessao} ${a.texto === 'Começou' ? 'começou' : 'terminou'}`,
-        line: a.gp, small: (a.top || []).map((x) => `${x.pos}º ${x.nome}`).join(' · ') };
+        line: (a.seguidos || []).length ? (a.seguidos || []).map((x) => `${x.pos}º ${String(x.nome).split(' ').slice(-1)[0]}`).join(' · ') : a.gp,
+        small: (a.seguidos || []).length ? a.gp : (a.top || []).map((x) => `${x.pos}º ${x.nome}`).join(' · ') };
     }
     const p = a.partida;
     const line = `${p.time_mandante.nome_popular} ${p.placar_mandante ?? 0} × ${p.placar_visitante ?? 0} ${p.time_visitante.nome_popular}`;

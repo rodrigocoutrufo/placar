@@ -5,7 +5,7 @@ import { useLive } from '../lib/live.js';
 import { useApi } from '../lib/api.js';
 import { useComps, useAgenda, featured, compOf, compRank } from '../lib/data.js';
 import { dayKey, parseDate, flattenTable, isLeague, isLive, fmtDT, timeAgo, parseISO } from '../lib/format.js';
-import { followsComp, followsTeam } from '../lib/notify.js';
+import { followsComp, followsTeam, followsF1Driver, followsF1Team } from '../lib/notify.js';
 import { homeComps, followedComps, isFollowedMatch, followsCompHome, toggleFollowComp, DEFAULT_COMPS } from '../lib/follow.js';
 import { compTheme, LOGO } from '../lib/themes.js';
 import { Taste, getFavs, useStoreVersion } from '../lib/store.js';
@@ -239,11 +239,17 @@ function NBAWidget() {
 }
 
 function F1Widget() {
+  useStoreVersion();
   const { data } = useApi('/esportes/f1', { ttl: 300_000 });
   const nx = data && data.proxima;
   if (!nx) return null;
   const now = Date.now();
   const ses = nx.sessoes.find((s) => parseISO(s.data_iso) > now - 2 * 3600e3);
+  // pilotos e equipes seguidos, com a posição e os pontos no campeonato
+  const mine = [
+    ...(data.pilotos || []).filter((d) => followsF1Driver(d.piloto.id)).map((d) => ({ to: `/f1/piloto/${d.piloto.id}`, nome: d.piloto.sobrenome, pos: d.posicao, pts: d.pontos, cor: (d.piloto.equipe || {}).cor })),
+    ...(data.construtores || []).filter((c) => followsF1Team(c.equipe.id)).map((c) => ({ to: `/f1/equipe/${c.equipe.id}`, nome: c.equipe.nome.replace(/ F1 Team$/, ''), pos: c.posicao, pts: c.pontos, cor: c.equipe.cor })),
+  ];
   return (
     <Panel className="w-f1">
       <Link to="/f1" className="w-f1-in">
@@ -252,6 +258,16 @@ function F1Widget() {
         <b>{nx.nome}</b>
         {ses && <><span className="w-f1-ses">{ses.nome} · {fmtDT(ses.data_iso)}</span>{parseISO(ses.data_iso) > now && <Countdown iso={ses.data_iso} className="mini" />}</>}
       </Link>
+      {mine.length > 0 && (
+        <div className="w-f1-mine">
+          <small>Você segue</small>
+          {mine.map((x) => (
+            <Link key={x.to} to={x.to} className="w-f1-row" style={{ '--tc': x.cor || '#888' }}>
+              <span className="p">{x.pos}º</span><i className="tcb" /><b>{x.nome}</b><em>{x.pts} pts</em>
+            </Link>
+          ))}
+        </div>
+      )}
     </Panel>
   );
 }

@@ -2,7 +2,8 @@ import { Link, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApi } from '../lib/api.js';
 import { useOtherLive } from '../lib/live.js';
-import { getNotif, setNotif } from '../lib/notify.js';
+import { getNotif, setNotif, followsF1Driver, followsF1Team } from '../lib/notify.js';
+import { useStoreVersion } from '../lib/store.js';
 import { Bell } from '../components/Notify.jsx';
 import { LOGO } from '../lib/themes.js';
 import { parseISO, fmtDT } from '../lib/format.js';
@@ -108,6 +109,7 @@ export default function F1() {
 
 // torre de cronometragem
 function Drivers({ d }) {
+  useStoreVersion();
   const max = (d.pilotos[0] || {}).pontos || 1;
   return (
     <Panel className="flush tower-panel">
@@ -116,7 +118,7 @@ function Drivers({ d }) {
           const c = (x.piloto.equipe || {}).cor || '#888';
           return (
             <Item key={x.piloto.id}>
-              <a className={`tw ${x.piloto.brasileiro ? 'br' : ''}`} href={classic(`/f1/piloto/${x.piloto.id}`)} style={{ '--tc': c }}>
+              <a className={`tw ${x.piloto.brasileiro ? 'br' : ''} ${followsF1Driver(x.piloto.id) ? 'fol' : ''}`} href={classic(`/f1/piloto/${x.piloto.id}`)} style={{ '--tc': c }}>
                 <span className={`p p${x.posicao}`}>{x.posicao}</span>
                 <span className="tc" />
                 {x.piloto.foto_oficial ? <img className="tw-face" src={x.piloto.foto_oficial} alt="" loading="lazy" /> : flag(x.piloto.bandeira)}
@@ -133,13 +135,14 @@ function Drivers({ d }) {
 }
 
 function Constructors({ d }) {
+  useStoreVersion();
   const max = (d.construtores[0] || {}).pontos || 1;
   return (
     <Panel className="flush tower-panel">
       <Stagger className="tower">
         {d.construtores.map((c) => (
           <Item key={c.equipe.id}>
-            <a className="tw" href={classic(`/f1/equipe/${c.equipe.id}`)} style={{ '--tc': c.equipe.cor }}>
+            <a className={`tw ${followsF1Team(c.equipe.id) ? 'fol' : ''}`} href={classic(`/f1/equipe/${c.equipe.id}`)} style={{ '--tc': c.equipe.cor }}>
               <span className={`p p${c.posicao}`}>{c.posicao}</span><span className="tc" />
               <span className="nm"><b>{c.equipe.nome}</b><small>{c.vitorias} vitória{c.vitorias === 1 ? '' : 's'}</small></span>
               <span className="bar"><motion.i initial={{ width: 0 }} animate={{ width: `${(c.pontos / max) * 100}%` }} transition={{ duration: 1, ease }} /></span>

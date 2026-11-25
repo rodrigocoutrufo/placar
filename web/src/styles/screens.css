@@ -689,3 +689,75 @@ a.fchip:hover { border-color: var(--hl); color: var(--hl); }
   .hist-row small { grid-column: 3; }
   .ml-tip { left: 8px; right: 8px; }
 }
+
+/* ================= F1: circuito da etapa ================= */
+.f1-wait { text-align: center; padding: 8px 0; font-size: 13px; }
+.circ-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; }
+.circ-map { display: grid; place-items: center; padding: 18px; min-height: 320px; background: radial-gradient(ellipse at center, color-mix(in srgb, var(--hl) 7%, transparent), transparent 70%); }
+.trk { width: 100%; max-height: 460px; overflow: visible; }
+.trk-base { fill: none; stroke: var(--pan3); stroke-width: 34; stroke-linejoin: round; stroke-linecap: round; }
+.trk-line { fill: none; stroke: var(--ink); stroke-width: 11; stroke-linejoin: round; stroke-linecap: round; }
+.trk-start { fill: var(--hl); }
+.trk-start-t { fill: var(--hl-ink, #fff); font: 800 20px var(--fc); }
+.trk-tick { stroke: var(--mute); stroke-width: 2; opacity: .5; }
+.trk-c { fill: var(--pan); stroke: var(--rule2); stroke-width: 2; }
+.trk-n { fill: var(--ink2); font: 700 21px var(--fc); }
+.circ-side { border-left: 1px solid var(--rule); display: grid; align-content: start; }
+.circ-facts { display: grid; }
+.circ-facts > * { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 12px 18px; border-bottom: 1px solid var(--rule); }
+.circ-facts span { color: var(--mute); font-size: 13.5px; }
+.circ-facts b { font: 800 24px/1 var(--fc); }
+.circ-rec { display: grid; gap: 4px; margin: 14px; padding: 14px 16px; border-radius: 6px; background: var(--pan2); border-left: 4px solid var(--tc); }
+.circ-rec small { font: 700 12px var(--fc); text-transform: uppercase; letter-spacing: .05em; color: var(--mute); }
+.circ-rec b { font: 800 34px/1 var(--fc); color: var(--ink); font-variant-numeric: tabular-nums; }
+.circ-rec span { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink2); }
+.circ-rec:hover b { color: var(--hl); }
+/* previsão do tempo */
+.wx { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; padding: 14px; }
+.wx-card { display: grid; justify-items: center; gap: 2px; padding: 14px 10px; border-radius: 6px; background: var(--pan2); border: 1px solid var(--rule); text-align: center; }
+.wx-card.race { border-color: var(--hl); }
+.wx-card.wet { background: linear-gradient(180deg, rgba(56, 132, 255, .16), var(--pan2)); }
+.wx-card small { font: 700 13px var(--fc); text-transform: uppercase; letter-spacing: .03em; }
+.wx-when { font-size: 12px; color: var(--mute); }
+.wx-card b { font: 800 30px/1 var(--fc); }
+.wx-txt { font-size: 12.5px; color: var(--ink2); }
+.wx-meta { font-size: 11.5px; color: var(--mute); }
+.wx-ico { width: 46px; height: 46px; margin: 4px 0; }
+.wx-sun circle { fill: #f5b301; } .wx-sun line { stroke: #f5b301; stroke-width: 3; stroke-linecap: round; }
+.wx-cloud { fill: #c9d1db; }
+.wx-rain { stroke: #4ea1ff; stroke-width: 3; stroke-linecap: round; }
+.wx-bolt { fill: #f5b301; }
+/* última edição */
+.last-ed { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.1fr); gap: 10px; padding: 14px; }
+.last-p { display: grid; gap: 6px; padding: 12px 14px; border-radius: 6px; background: var(--pan2); border-top: 4px solid var(--tc); }
+.last-pos { font: 800 26px/1 var(--fc); color: var(--mute); } .last-p.p1 .last-pos { color: #e8b923; }
+.last-nm { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 6px; }
+.last-nm b { font: 800 18px var(--fc); text-transform: uppercase; } .last-nm small { grid-column: 1 / -1; color: var(--mute); font-size: 12px; }
+.last-t { font-size: 12.5px; color: var(--ink2); font-variant-numeric: tabular-nums; }
+.last-p:hover b { color: var(--hl); }
+.last-pole { display: grid; gap: 4px; align-content: center; padding: 12px 14px; border-radius: 6px; border: 1px dashed var(--rule2); }
+.last-pole small { font: 700 12px var(--fc); text-transform: uppercase; color: var(--mute); }
+.last-pole b { display: flex; align-items: center; gap: 6px; font-size: 15px; } .last-pole span { font: 800 22px var(--fc); }
+@media (max-width: 900px) {
+  .circ-grid { grid-template-columns: 1fr; }
+  .circ-side { border-left: 0; border-top: 1px solid var(--rule); }
+  .circ-map { min-height: 0; }
+  .last-ed { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 520px) { .last-ed { grid-template-columns: 1fr; } .wx { grid-template-columns: 1fr 1fr; } }
+
+/* ================= F1: pilotos e equipes seguidos ================= */
+.np-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.np-dot.sq { border-radius: 2px; }
+.tw.fol { box-shadow: inset 3px 0 0 var(--hl); background: color-mix(in srgb, var(--hl) 9%, transparent); }
+.tw.fol .nm b::after { content: " ★"; color: var(--hl); font-size: .85em; }
+.tbl tr.fol td { background: color-mix(in srgb, var(--hl) 13%, transparent); }
+.tbl tr.fol td.team b::after { content: " ★"; color: var(--hl); }
+.w-f1-mine { display: grid; gap: 2px; padding: 10px 14px 12px; background: var(--pan); }
+.w-f1-mine small { font: 700 12px var(--fc); text-transform: uppercase; letter-spacing: .05em; color: var(--mute); margin-bottom: 4px; }
+.w-f1-row { display: grid; grid-template-columns: 34px 6px 1fr auto; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--rule); }
+.w-f1-row .p { font: 800 17px var(--fc); color: var(--mute); }
+.w-f1-row .tcb { width: 4px; height: 16px; background: var(--tc); }
+.w-f1-row b { font-weight: 700; }
+.w-f1-row em { font: 800 16px var(--fc); font-style: normal; }
+.w-f1-row:hover b { color: var(--hl); }

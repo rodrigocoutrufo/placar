@@ -11,6 +11,7 @@ const DEF = {
   mudos: [], // favoritos silenciados (ids)
   nbaTodos: false, nbaTimes: [], // NBA: todos os jogos ou só os times escolhidos ([{ id, nome, logo }], ids da ESPN)
   f1: false, // começo e fim de cada sessão (treinos, classificação, corrida)
+  f1Pilotos: [], f1Equipes: [], // F1 seguidos: [{ id, nome, cor, foto }] (ids da Jolpica); avisam a posição de cada um
   tipos: { gol: true, inicio: true, intervalo: false, fim: true },
   navegador: false,
 };
@@ -79,7 +80,27 @@ export function wantsNba(g, kind) {
   if (!g || (kind !== 'gol' && !n.tipos[kind])) return false;
   return n.nbaTodos || nbaIds(n).includes(+g.casa.id) || nbaIds(n).includes(+g.fora.id);
 }
-export const wantsF1 = () => getNotif().f1;
+/* ---------- F1: pilotos e equipes seguidos ---------- */
+const has = (list, id) => (list || []).some((x) => x && x.id === id);
+export const followsF1Driver = (id) => has(getNotif().f1Pilotos, id);
+export const followsF1Team = (id) => has(getNotif().f1Equipes, id);
+export const followsF1Any = () => { const n = getNotif(); return n.f1Pilotos.length + n.f1Equipes.length > 0; };
+export function toggleF1Driver(p) { // p = { id, nome, cor, foto }
+  const n = getNotif();
+  setNotif({ f1Pilotos: has(n.f1Pilotos, p.id) ? n.f1Pilotos.filter((x) => x.id !== p.id) : [...n.f1Pilotos, { id: p.id, nome: p.nome, cor: p.cor, foto: p.foto }] });
+}
+export function toggleF1Team(t) { // t = { id, nome, cor }
+  const n = getNotif();
+  setNotif({ f1Equipes: has(n.f1Equipes, t.id) ? n.f1Equipes.filter((x) => x.id !== t.id) : [...n.f1Equipes, { id: t.id, nome: t.nome, cor: t.cor }] });
+}
+// piloto da ordem de uma sessão que a pessoa segue (por ele mesmo ou pela equipe)
+export const isFollowedF1 = (x) => !!x && (followsF1Driver(x.id) || (!!x.equipe && followsF1Team(typeof x.equipe === 'string' ? x.equipe : x.equipe.id)));
+// sessão da F1: avisa quem liga "todas as sessões" ou segue alguém; no fim, diz a posição de quem segue
+export function wantsF1(e) {
+  const n = getNotif();
+  const mine = ((e && e.ordem) || []).filter(isFollowedF1);
+  return { on: n.f1 || n.f1Pilotos.length + n.f1Equipes.length > 0, mine };
+}
 
 /* ---------- notificação do navegador (aba em segundo plano) ---------- */
 export const browserSupport = () => typeof window !== 'undefined' && 'Notification' in window;

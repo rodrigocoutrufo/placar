@@ -56,7 +56,7 @@ def _race_dt(r: dict, key: str | None = None):
 
 
 def _schedule():
-    return _get(f"{JOLPICA}/current.json", 6 * 3600)["MRData"]["RaceTable"]["Races"]
+    return _jget(f"current.json", 6 * 3600)["MRData"]["RaceTable"]["Races"]
 
 
 def _race_out(r: dict, winners: dict, now: datetime) -> dict:
@@ -105,7 +105,7 @@ def f1_overview() -> dict:
     races = _schedule()
     winners = {}
     try:
-        for r in _get(f"{JOLPICA}/current/results/1.json?limit=100", 1800)["MRData"]["RaceTable"]["Races"]:
+        for r in _jget(f"current/results/1.json?limit=100", 1800)["MRData"]["RaceTable"]["Races"]:
             w = r["Results"][0]
             winners[r["round"]] = _driver(w["Driver"], w.get("Constructor"))
     except Exception:  # noqa: BLE001
@@ -114,11 +114,11 @@ def f1_overview() -> dict:
     nxt = next((r for r in cal if r["status"] != "finalizada"), None)
     drivers, teams = [], []
     try:
-        lst = _get(f"{JOLPICA}/current/driverStandings.json", 1800)["MRData"]["StandingsTable"]["StandingsLists"]
+        lst = _jget(f"current/driverStandings.json", 1800)["MRData"]["StandingsTable"]["StandingsLists"]
         for d in (lst[0]["DriverStandings"] if lst else []):
             drivers.append({"posicao": _int(d.get("position") or d.get("positionText")), "pontos": float(d["points"]), "vitorias": _int(d.get("wins"), 0),
                             "piloto": _driver(d["Driver"], (d.get("Constructors") or [None])[-1])})
-        lst = _get(f"{JOLPICA}/current/constructorStandings.json", 1800)["MRData"]["StandingsTable"]["StandingsLists"]
+        lst = _jget(f"current/constructorStandings.json", 1800)["MRData"]["StandingsTable"]["StandingsLists"]
         for c in (lst[0]["ConstructorStandings"] if lst else []):
             teams.append({"posicao": _int(c.get("position") or c.get("positionText")), "pontos": float(c["points"]), "vitorias": _int(c.get("wins"), 0),
                           "equipe": _team(c["Constructor"])})
@@ -139,6 +139,31 @@ def f1_overview() -> dict:
             "proxima": nxt, "fim_de_semana": _espn_weekend(), "calendario": cal, "pilotos": drivers, "construtores": teams, "titulo": title}
 
 
+def _fold(s: str | None) -> str:
+    import unicodedata
+    return " ".join(unicodedata.normalize("NFD", s or "").encode("ascii", "ignore").decode().lower().replace("-", " ").split())
+
+
+def identify(order: list) -> list:
+    """Liga a ordem de uma sessão da ESPN (só o nome) aos pilotos da Jolpica: id, sigla e equipe de cada um.
+    Serve para avisar quem segue um piloto ou uma equipe."""
+    try:
+        drivers = [d["piloto"] for d in f1_overview().get("pilotos") or []]
+    except Exception:  # noqa: BLE001
+        drivers = []
+    full = {_fold(p["nome"]): p for p in drivers}
+    last = {}
+    for p in drivers:
+        last.setdefault(_fold(p["sobrenome"]), []).append(p)
+    out = []
+    for x in order:
+        n = _fold(x.get("nome"))
+        p = full.get(n) or next((v[0] for k, v in last.items() if len(v) == 1 and (n.endswith(" " + k) or n == k)), None)
+        out.append({"pos": x.get("pos"), "nome": x.get("nome"), "id": p and p["id"], "sigla": p and p["sigla"],
+                    "equipe": p and (p.get("equipe") or {}).get("id")})
+    return out
+
+
 def f1_live():
     w = _espn_weekend()
     return w["ao_vivo"] if w else None
@@ -153,7 +178,7 @@ def f1_race(rnd: int) -> dict:
 
     def results(kind):
         try:
-            rr = _get(f"{JOLPICA}/current/{rnd}/{kind}.json?limit=40", 1800)["MRData"]["RaceTable"]["Races"]
+            rr = _jget(f"current/{rnd}/{kind}.json?limit=40", 1800)["MRData"]["RaceTable"]["Races"]
         except Exception:  # noqa: BLE001
             return []
         return rr[0].get({"results": "Results", "qualifying": "QualifyingResults", "sprint": "SprintResults"}[kind]) or [] if rr else []
@@ -197,7 +222,7 @@ def f1_race_analysis(rnd: int) -> dict:
     out = openf1.race_analysis(_race_dt(r), _int(r["season"]))
     # liga os pilotos da OpenF1 (número) aos da Jolpica (id da página do piloto)
     try:
-        rr = _get(f"{JOLPICA}/current/{rnd}/results.json?limit=40", 1800)["MRData"]["RaceTable"]["Races"]
+        rr = _jget(f"current/{rnd}/results.json?limit=40", 1800)["MRData"]["RaceTable"]["Races"]
         by_code = {x["Driver"].get("code"): x["Driver"]["driverId"] for x in (rr[0]["Results"] if rr else [])}
         by_num = {_int(x["Driver"].get("permanentNumber")): x["Driver"]["driverId"] for x in (rr[0]["Results"] if rr else [])}
         for d in out["pilotos"]:
@@ -218,7 +243,8 @@ _jpause = [0.0]
 
 
 def _jget(path: str, ttl: float):
-    """Jolpica tem limite (4/s, 500/h): espaça as chamadas que não estão em cache."""
+    """Jolpica tem limite (4/s, 500/h): espaça as chamadas que não estão em cache. Toda chamada à Jolpica passa
+    por aqui (o servidor aquece várias telas da F1 ao mesmo tempo; chamadas diretas estouravam o limite por segundo)."""
     url = f"{JOLPICA}/{path}"
     with _lock:
         hit = _cache.get(url)
@@ -229,7 +255,7 @@ def _jget(path: str, ttl: float):
             return hit[1]
         raise TimeoutError("Jolpica: limite de pedidos, tente em instantes")
     with _jolt:
-        wait = 0.3 - (time.time() - _jlast[0])
+        wait = 0.35 - (time.time() - _jlast[0])
         if wait > 0:
             time.sleep(wait)
         _jlast[0] = time.time()
@@ -327,7 +353,7 @@ def f1_driver(did: str) -> dict:
                      "pontos": float(x.get("points") or 0), "sprint": sp, "acumulado": acc, "volta_rapida": (x.get("FastestLap") or {}).get("rank") == "1"})
     out["temporada"] = rows
     try:
-        lst = _get(f"{JOLPICA}/current/driverStandings.json", 1800)["MRData"]["StandingsTable"]["StandingsLists"]
+        lst = _jget(f"current/driverStandings.json", 1800)["MRData"]["StandingsTable"]["StandingsLists"]
         me = next((d for d in lst[0]["DriverStandings"] if d["Driver"]["driverId"] == did), None) if lst else None
         if me:
             out["campeonato"] = {"posicao": _int(me.get("position")), "pontos": float(me["points"]), "vitorias": _int(me.get("wins"), 0)}
@@ -378,7 +404,7 @@ def f1_team(cid: str) -> dict:
     out["temporada"] = rows
     out["pilotos"] = sorted(drivers.values(), key=lambda e: -e["pontos"])
     try:
-        lst = _get(f"{JOLPICA}/current/constructorStandings.json", 1800)["MRData"]["StandingsTable"]["StandingsLists"]
+        lst = _jget(f"current/constructorStandings.json", 1800)["MRData"]["StandingsTable"]["StandingsLists"]
         me = next((c for c in lst[0]["ConstructorStandings"] if c["Constructor"]["constructorId"] == cid), None) if lst else None
         if me:
             out["campeonato"] = {"posicao": _int(me.get("position")), "pontos": float(me["points"]), "vitorias": _int(me.get("wins"), 0)}

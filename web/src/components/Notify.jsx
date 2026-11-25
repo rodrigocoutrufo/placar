@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStoreVersion, getFavs } from '../lib/store.js';
-import { getNotif, setNotif, toggleComp, toggleTeam, toggleNbaTeam, followsTeam, browserSupport, browserPermission, enableBrowser } from '../lib/notify.js';
+import { getNotif, setNotif, toggleComp, toggleTeam, toggleNbaTeam, toggleF1Driver, toggleF1Team, followsTeam, browserSupport, browserPermission, enableBrowser } from '../lib/notify.js';
 import { useComps } from '../lib/data.js';
 import { followsCompHome, toggleFollowComp } from '../lib/follow.js';
 import { Icon } from './ui.jsx';
@@ -33,12 +33,12 @@ export function FollowComp({ id, className = '' }) {
 
 // botão "Avisar" (no cabeçalho do campeonato, do time, da NBA e da F1)
 // on: booleano ou função (avaliada aqui dentro: o sino se atualiza sozinho quando a preferência muda)
-export function Bell({ on: isOn, onClick, label = 'Avisar', onLabel = 'Avisando', className = '' }) {
+export function Bell({ on: isOn, onClick, label = 'Avisar', onLabel = 'Avisando', className = '', hint = 'gols, começo e fim' }) {
   useStoreVersion();
   const on = typeof isOn === 'function' ? isOn() : isOn;
   return (
     <motion.button type="button" className={`bell ${on ? 'on' : ''} ${className}`} onClick={onClick} whileTap={{ scale: 0.92 }} aria-pressed={on}
-      title={on ? 'Você recebe avisos de gols, começo e fim. Clique para parar.' : 'Receber avisos de gols, começo e fim'}>
+      title={on ? `Você recebe avisos de ${hint}. Clique para parar.` : `Receber avisos de ${hint}`}>
       <motion.span key={String(on)} initial={{ rotate: on ? -25 : 0, scale: 0.6 }} animate={{ rotate: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 12 }}>{bellIcon(on)}</motion.span>
       {on ? onLabel : label}
     </motion.button>
@@ -138,6 +138,18 @@ function Panel({ onClose }) {
           <section>
             <h3><img src={LOGO.f1} alt="" height="14" /> Fórmula 1</h3>
             <Switch on={n.f1} onChange={(v) => setNotif({ f1: v })} hint="Treinos, classificação e corrida: começo e fim com o top 3">Sessões da F1</Switch>
+            {n.f1Pilotos.length + n.f1Equipes.length > 0 ? (
+              <div className="np-list">
+                {n.f1Pilotos.map((p) => (
+                  <span key={p.id} className="np-item"><i className="np-dot" style={{ background: p.cor || '#888' }} /><Link to={`/f1/piloto/${p.id}`} onClick={onClose}>{p.nome}</Link>
+                    <button type="button" aria-label={`Parar de seguir ${p.nome}`} onClick={() => toggleF1Driver(p)}>×</button></span>
+                ))}
+                {n.f1Equipes.map((t) => (
+                  <span key={t.id} className="np-item"><i className="np-dot sq" style={{ background: t.cor || '#888' }} /><Link to={`/f1/equipe/${t.id}`} onClick={onClose}>{t.nome}</Link>
+                    <button type="button" aria-label={`Parar de seguir ${t.nome}`} onClick={() => toggleF1Team(t)}>×</button></span>
+                ))}
+              </div>
+            ) : <p className="np-note">Toque em <b>Seguir</b> na página de um piloto ou equipe para saber a posição dele no fim de cada sessão.</p>}
           </section>
         </div>
       </motion.aside>
@@ -150,7 +162,7 @@ export function HeaderBell() {
   const [open, setOpen] = useState(false);
   useStoreVersion();
   const n = getNotif();
-  const active = n.comps.length + n.times.length + Object.keys(getFavs()).length + n.nbaTimes.length + (n.nbaTodos ? 1 : 0) + (n.f1 ? 1 : 0) > 0;
+  const active = n.comps.length + n.times.length + Object.keys(getFavs()).length + n.nbaTimes.length + (n.nbaTodos ? 1 : 0) + (n.f1 ? 1 : 0) + n.f1Pilotos.length + n.f1Equipes.length > 0;
   return (
     <>
       <button className={`ibtn ${active ? 'has-notif' : ''}`} onClick={() => setOpen(true)} aria-label="Notificações" title="Notificações">{bellIcon(false)}</button>

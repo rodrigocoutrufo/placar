@@ -84,7 +84,7 @@ TTL_RULES = [
 ]
 TTL_RULES = [(re.compile(p), a, b) for p, a, b in TTL_RULES]
 ALLOWED = [r for r, _, _ in TTL_RULES if r.pattern != "^/me$"] + [re.compile(r"^/(jogador-tm|time-tm|estadio|minijogos/craques)$"), re.compile(r"^/campeonatos/\d+/chances$"),
-                                                                 re.compile(r"^/esportes/(nba/(jogos|jogo/\d+|classificacao|time/\d+|jogador/\d+)|f1(/corrida/\d+(/analise)?|/piloto/[a-z_]+|/equipe/[a-z_]+|/temporada|/comparar/[a-z_]+/[a-z_]+)?)$"),
+                                                                 re.compile(r"^/esportes/(nba/(jogos|jogo/\d+|classificacao|time/\d+|jogador/\d+)|f1(/corrida/\d+(/analise|/circuito)?|/piloto/[a-z_]+|/equipe/[a-z_]+|/temporada|/comparar/[a-z_]+/[a-z_]+)?)$"),
                                                                  re.compile(r"^/transmissoes$"), re.compile(r"^/agenda$")]
 NEWS_PARAMS = {"pagina", "por_pagina", "time_id", "campeonato_id", "provedor", "desde", "tipo", "assunto", "competicao"}
 # Ordem de exibição: Brasil primeiro (Série A antes da Série B), depois América do Sul e Europa
@@ -1094,8 +1094,13 @@ class LiveHub:
             self.publish("f1", {"texto": "Começou", "sessao": b.get("nome"), "gp": w.get("nome"), "top": []})
         if a and (not b or b.get("nome") != a.get("nome")):
             done = next((s for s in w.get("sessoes") or [] if s.get("nome") == a.get("nome")), None) or a
+            order = done.get("ordem") or []
+            try:  # ordem completa com o id de cada piloto e da equipe: avisa quem segue um piloto ou uma equipe
+                full = sports.f1_identify(order)
+            except Exception:  # noqa: BLE001
+                full = []
             self.publish("f1", {"texto": "Terminou", "sessao": a.get("nome"), "gp": w.get("nome"),
-                                "top": [{"pos": x.get("pos"), "nome": x.get("nome")} for x in (done.get("ordem") or [])[:3]]})
+                                "top": [{"pos": x.get("pos"), "nome": x.get("nome")} for x in order[:3]], "ordem": full})
 
     def tick(self):
         st, body, _ = route("/ao-vivo")
@@ -1177,6 +1182,9 @@ def scheduler():
         done = [r["rodada"] for r in o.get("calendario", []) if r.get("status") == "finalizada"]
         if done:
             sports.handle(f"/f1/corrida/{done[-1]}/analise")
+        nxt = o.get("proxima")
+        if nxt:  # traçado, ficha e previsão do tempo da próxima etapa
+            sports.handle(f"/f1/corrida/{nxt['rodada']}/circuito")
 
     def every(key, seconds, fn):
         if time.time() - last.get(key, 0) >= seconds:

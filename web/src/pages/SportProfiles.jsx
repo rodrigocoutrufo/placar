@@ -6,7 +6,7 @@ import { Taste } from '../lib/store.js';
 import { LOGO } from '../lib/themes.js';
 import { fmtDT, hexA } from '../lib/format.js';
 import { Bell } from '../components/Notify.jsx';
-import { followsNbaTeam, toggleNbaTeam } from '../lib/notify.js';
+import { followsNbaTeam, toggleNbaTeam, followsF1Driver, toggleF1Driver, followsF1Team, toggleF1Team } from '../lib/notify.js';
 import { Panel, Head, Skel, Empty, Tabs, Stagger, Item, CountUp, Reveal, ease } from '../components/ui.jsx';
 
 const flag = (src, w = 22) => (src ? <img className="flag" src={src} alt="" width={w} /> : null);
@@ -167,6 +167,7 @@ export function F1Driver() {
     <>
       <ProfileHero kind="f1" color={team.cor} photo={d.foto_oficial || d.foto} num={d.numero} eyebrow={team.id ? <Link to={`/f1/equipe/${team.id}`}><i className="tcb" style={{ background: team.cor }} /> {team.nome}</Link> : 'Fórmula 1'}
         title={<>{flag(d.bandeira, 34)} {d.nome}</>} sub={[d.idade ? `${d.idade} anos` : '', d.nascimento ? `nascido em ${d.nascimento}` : ''].filter(Boolean).join(' · ')}
+        action={<Bell on={() => followsF1Driver(d.id)} onClick={() => toggleF1Driver({ id: d.id, nome: d.nome, cor: team.cor, foto: d.foto_oficial })} label="Seguir" onLabel="Seguindo" className="on-dark" hint="começo e fim das sessões, com a posição dele" />}
         kpis={[[cs.posicao ? `${cs.posicao}º` : '–', 'No campeonato', `${cs.pontos ?? 0} pontos`], [cs.vitorias ?? 0, 'Vitórias em 2026'], [cr.titulos, 'Títulos mundiais'], [cr.vitorias, 'Vitórias na carreira'], [cr.podios, 'Pódios'], [cr.poles, 'Poles'], [cr.corridas, 'GPs']]} />
       <div className="grid-main">
         <div className="col">
@@ -200,6 +201,7 @@ export function F1Team() {
   return (
     <>
       <ProfileHero kind="f1-team" color={t.cor} photo={t.foto} eyebrow={<><i className="tcb" style={{ background: t.cor }} /> Equipe de Fórmula 1</>} title={t.nome} sub={t.pais}
+        action={<Bell on={() => followsF1Team(id)} onClick={() => toggleF1Team({ id, nome: t.nome, cor: t.cor })} label="Seguir" onLabel="Seguindo" className="on-dark" hint="começo e fim das sessões, com a posição dos pilotos" />}
         kpis={[[cs.posicao ? `${cs.posicao}º` : '–', 'Construtores', `${cs.pontos ?? 0} pontos`], [cs.vitorias ?? 0, 'Vitórias em 2026'], [cr.titulos, 'Títulos'], [cr.vitorias, 'Vitórias na história'], [cr.poles, 'Poles na história']]} />
       <div className="grid-main">
         <div className="col">

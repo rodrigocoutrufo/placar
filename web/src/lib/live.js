@@ -42,10 +42,13 @@ function onNba(e) {
   systemNotify(`NBA · ${e.texto}`, txt, { icon: g.casa.logo, tag: `nba-${g.id}`, url: `/#/nba/jogo/${g.id}` });
 }
 function onF1(e) {
-  if (!wantsF1()) return;
-  pushAlert({ kind: 'f1', id: `${e.gp}-${e.sessao}`, ...e });
+  const w = wantsF1(e);
+  if (!w.on) return;
+  // fim de sessão: a posição de quem a pessoa segue vem antes do top 3
+  const mine = w.mine.map((x) => `${x.pos}º ${String(x.nome).split(' ').slice(-1)[0]}`).join(' · ');
+  pushAlert({ kind: 'f1', id: `${e.gp}-${e.sessao}`, ...e, seguidos: w.mine });
   const top = (e.top || []).map((x) => `${x.pos}º ${x.nome}`).join(' · ');
-  systemNotify(`F1 · ${e.sessao} ${e.texto === 'Começou' ? 'começou' : 'terminou'}`, `${e.gp}${top ? ` — ${top}` : ''}`, { tag: `f1-${e.sessao}`, url: '/#/f1' });
+  systemNotify(`F1 · ${e.sessao} ${e.texto === 'Começou' ? 'começou' : 'terminou'}`, `${e.gp}${mine ? ` — ${mine}` : top ? ` — ${top}` : ''}`, { tag: `f1-${e.sessao}`, url: '/#/f1' });
 }
 export const dismissGoal = (key) => { snapGoals = snapGoals.filter((x) => x.key !== key); emit(); };
 

@@ -5,10 +5,14 @@ import { LOGO } from '../lib/themes.js';
 import { fmtDT } from '../lib/format.js';
 import { Panel, Head, Skel, Empty, Stagger, Item, ease } from '../components/ui.jsx';
 import F1Analysis from './F1Analysis.jsx';
+import { F1Circuit } from '../components/F1Circuit.jsx';
+import { isFollowedF1 } from '../lib/notify.js';
+import { useStoreVersion } from '../lib/store.js';
 
 const flag = (src, w = 20) => (src ? <img className="flag" src={src} alt="" width={w} /> : null);
 
 export default function F1Race() {
+  useStoreVersion();
   const { rnd } = useParams();
   const { data: r } = useApi(`/esportes/f1/corrida/${rnd}`, { ttl: 120_000, critical: true });
   if (!r) return <><Skel h={260} /><Skel h={500} /></>;
@@ -30,6 +34,7 @@ export default function F1Race() {
         </div>
         <Stagger className="pw-sessions">{r.sessoes.map((s) => <Item key={s.nome} className={`ses ${s.nome === 'Corrida' ? 'race' : ''}`}><b>{s.nome}</b><span>{fmtDT(s.data_iso)}</span></Item>)}</Stagger>
       </section>
+      {!r.resultado.length && <F1Circuit rnd={r.rodada} />}
       {r.resultado.length > 0 && <F1Analysis rnd={r.rodada} />}
       {r.resultado.length > 0 && (
         <Panel className="flush">
@@ -40,7 +45,7 @@ export default function F1Race() {
               {r.resultado.map((x) => {
                 const gain = x.largada && x.posicao ? x.largada - x.posicao : 0;
                 return (
-                  <motion.tr key={x.piloto.id} className={x.piloto.brasileiro ? 'hl' : ''} variants={{ hidden: { opacity: 0, x: -14 }, show: { opacity: 1, x: 0 } }}>
+                  <motion.tr key={x.piloto.id} className={`${x.piloto.brasileiro ? 'hl' : ''} ${isFollowedF1({ id: x.piloto.id, equipe: x.piloto.equipe }) ? 'fol' : ''}`} variants={{ hidden: { opacity: 0, x: -14 }, show: { opacity: 1, x: 0 } }}>
                     <td className={`pos p${x.posicao}`} style={{ '--z': (x.piloto.equipe || {}).cor || 'transparent' }}>{x.posicao}</td>
                     <td className="team l">{pilot(x.piloto)}</td>
                     <td className="hs">{x.largada || 'Box'} {gain ? <span className={`mv ${gain > 0 ? 'up' : 'down'}`}>{gain > 0 ? '▲' : '▼'}{Math.abs(gain)}</span> : null}</td>
@@ -63,7 +68,8 @@ export default function F1Race() {
             <tbody>{r.classificacao.map((x) => <tr key={x.piloto.id} className={x.piloto.brasileiro ? 'hl' : ''}><td>{x.posicao}</td><td className="team l">{pilot(x.piloto)}</td><td className="small">{x.q1}</td><td className="small hs">{x.q2}</td><td className="small">{x.q3}</td></tr>)}</tbody></table></div>
         </Panel>
       )}
-      {!r.resultado.length && !r.classificacao.length && <Panel><Empty>Os resultados aparecem aqui depois de cada sessão.</Empty></Panel>}
+      {!r.resultado.length && !r.classificacao.length && <p className="muted f1-wait">Os resultados aparecem aqui depois de cada sessão.</p>}
+      {r.resultado.length > 0 && <F1Circuit rnd={r.rodada} />}
       {r.historico && r.historico.corridas > 0 && <History h={r.historico} circuito={r.circuito} />}
     </>
   );
