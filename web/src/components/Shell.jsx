@@ -12,6 +12,7 @@ import { InstallButton } from './Install.jsx';
 import { isFollowedMatch } from '../lib/follow.js';
 import { isLive } from '../lib/format.js';
 import { useSuggest } from '../lib/registry.js';
+import { HitThumb } from './SearchHit.jsx';
 
 const NAV = [
   ['/', 'Jogos', (p) => p === '/' || p.startsWith('/partida')],
@@ -42,6 +43,7 @@ export function Header() {
   const navigate = useNavigate();
   const [q, setQ] = useState('');
   const sugg = useSuggest(q.trim());
+  useEffect(() => setQ(''), [pathname]); // mudou de tela: fecha as sugestões
   const isOn = (to, test) => (test ? test(pathname) : pathname === to || pathname.startsWith(to + '/'));
   const u = account.user;
   return (
@@ -70,11 +72,15 @@ export function Header() {
         {/* sem espaço (campeonato aberto, tela menor): vira uma lupa que abre por cima do menu */}
         <div className="srch-wrap">
         <form className="srch" onSubmit={(e) => { e.preventDefault(); if (q.trim()) { navigate(`/busca/${encodeURIComponent(q.trim())}`); setQ(''); } }}>
-            <label htmlFor="busca" className="srch-ico" title="Buscar">{Icon.search}</label><input id="busca" value={q} onChange={(e) => setQ(e.target.value)} onBlur={() => setTimeout(() => setQ(''), 200)} placeholder="Buscar times e jogadores" aria-label="Buscar" />
+            <label htmlFor="busca" className="srch-ico" title="Buscar">{Icon.search}</label><input id="busca" value={q} onChange={(e) => setQ(e.target.value)} onBlur={() => setTimeout(() => setQ(''), 200)} placeholder="Buscar times, jogadores, campeonatos" aria-label="Buscar" />
             <AnimatePresence>
               {sugg && (
                 <motion.div className="srch-sugg" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}>
-                  {sugg.length ? sugg.map((x) => <Link key={x.k} to={x.to} onClick={() => setQ('')}>{x.t && <Crest t={x.t} size={20} />}<span>{x.label}</span><small>{x.kind}</small></Link>) : <span className="none">Nada encontrado</span>}
+                  {sugg === 'loading' ? <span className="none">Buscando…</span>
+                    : sugg.length ? <>
+                      {sugg.map((x) => <Link key={x.k} to={x.to} onClick={() => setQ('')}><HitThumb x={x} size={22} /><span>{x.nome}{x.sub && <em>{x.sub}</em>}</span><small>{x.kind}</small></Link>)}
+                      <Link className="all" to={`/busca/${encodeURIComponent(q.trim())}`} onClick={() => setQ('')}>Ver todos os resultados</Link>
+                    </> : <span className="none">Nada encontrado para “{q.trim()}”</span>}
                 </motion.div>
               )}
             </AnimatePresence>

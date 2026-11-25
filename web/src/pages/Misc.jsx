@@ -5,39 +5,67 @@ import { useQuery } from '@tanstack/react-query';
 import { useApi, fetchCached, soft } from '../lib/api.js';
 import { useComps } from '../lib/data.js';
 import { useLive } from '../lib/live.js';
-import { buildIndex, searchAll, registry, mvNumber } from '../lib/registry.js';
+import { registry, mvNumber, useSearch, useDebounced } from '../lib/registry.js';
+import { HitThumb } from '../components/SearchHit.jsx';
 import { getFavs, toggleFav, useStoreVersion } from '../lib/store.js';
 import { norm, barColors } from '../lib/format.js';
 import { Panel, Head, Skel, Empty, Stagger, Item, Crest, CountUp, Icon, ease } from '../components/ui.jsx';
 import { MatchRow } from '../components/match.jsx';
 
 /* ---------- Busca ---------- */
-export function Search() {
-  const q = decodeURIComponent(useParams().q || '');
-  const ready = useQuery({ queryKey: ['search-index'], queryFn: () => buildIndex().then(() => true), staleTime: 300_000 });
-  if (!ready.data) return <Skel h={400} />;
-  const { teams, players } = searchAll(q);
+// resultados do servidor (/api/busca): campeonatos, times (futebol, NBA, F1) e jogadores de todos os esportes
+const SPORT = { futebol: 'Futebol', nba: 'NBA', f1: 'Fórmula 1' };
+function HitList({ items, empty }) {
+  if (!items.length) return <Empty>{empty}</Empty>;
   return (
-    <>
-      <motion.h1 className="page-title" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>{q ? `“${q}”` : 'Times'}</motion.h1>
-      <div className="grid-2">
-        <Panel><Head sub={`${teams.length}`}>Times</Head>
-          {teams.length ? <Stagger className="list">{teams.slice(0, 80).map((t) => <Item key={t.time_id}><Link className="li" to={`/time/${t.time_id}`}><Crest t={t} size={28} /><b style={{ flex: 1 }}>{t.nome_popular}</b><small className="muted">{t.sigla}</small></Link></Item>)}</Stagger> : <Empty>Nenhum time encontrado.</Empty>}</Panel>
-        {q && <Panel><Head sub={`${players.length}`}>Jogadores</Head>
-          {players.length ? <Stagger className="list">{players.map((p) => <Item key={p.atleta_id}><Link className="li" to={`/jogador/${p.atleta_id}`}>{p.time && <Crest t={p.time} size={24} />}<span><b>{p.nome_popular}</b><small className="muted" style={{ display: 'block' }}>{p.time ? p.time.nome_popular : ''}</small></span></Link></Item>)}</Stagger> : <Empty>Nenhum jogador encontrado.</Empty>}</Panel>}
-      </div>
-    </>
+    <Stagger className="list">
+      {items.map((x) => (
+        <Item key={x.to}>
+          <Link className="li hit" to={x.to}>
+            <HitThumb x={x} size={x.tipo === 'jogador' ? 36 : 28} />
+            <span className="hit-t"><b>{x.nome}</b>{x.sub && <small className="muted">{x.sub}</small>}</span>
+            {x.esporte && x.esporte !== 'futebol' && <span className="hit-tag">{SPORT[x.esporte]}</span>}
+          </Link>
+        </Item>
+      ))}
+    </Stagger>
   );
 }
-
-// sugestões enquanto digita (cabeçalho)
-export function useSuggest(q) {
-  const [ready, setReady] = useState(false);
-  useEffect(() => { if (q.length >= 2 && !ready) buildIndex().then(() => setReady(true)); }, [q, ready]);
-  if (q.length < 2 || !ready) return null;
-  const { teams, players } = searchAll(q, 6);
-  return [...teams.slice(0, 5).map((t) => ({ k: `t${t.time_id}`, to: `/time/${t.time_id}`, t, label: t.nome_popular, kind: 'Time' })),
-    ...players.map((p) => ({ k: `p${p.atleta_id}`, to: `/jogador/${p.atleta_id}`, t: p.time, label: p.nome_popular, kind: 'Jogador' }))];
+export function Search() {
+  const q = decodeURIComponent(useParams().q || '');
+  const navigate = useNavigate();
+  const [text, setText] = useState(q);
+  useEffect(() => setText(q), [q]);
+  const { data, loading, error } = useSearch(text);
+  // o endereço acompanha o que está digitado (dá para compartilhar e voltar)
+  const dq = useDebounced(text.trim(), 500);
+  useEffect(() => { if (dq !== q) navigate(dq ? `/busca/${encodeURIComponent(dq)}` : '/busca', { replace: true }); }, [dq]); // eslint-disable-line react-hooks/exhaustive-deps
+  const short = norm(text).length < 2;
+  const total = data ? data.campeonatos.length + data.times.length + data.jogadores.length : 0;
+  return (
+    <>
+      <motion.h1 className="page-title" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>Busca</motion.h1>
+      <form className="srch-page" onSubmit={(e) => e.preventDefault()} role="search">
+        {Icon.search}
+        <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Time, jogador, piloto ou campeonato" aria-label="Buscar" autoFocus={!q} />
+        {loading && <span className="srch-spin" aria-label="Buscando" />}
+      </form>
+      {short ? <Empty>Digite pelo menos 2 letras. Vale apelido ("timão", "galo"), sem acento e só o começo do nome ("vini", "arrasca").</Empty>
+        : error ? <Empty>Não foi possível buscar agora. Tente de novo em instantes.</Empty>
+        : !data ? <Skel h={320} />
+        : !total ? <Empty>Nada encontrado para “{text.trim()}”. Confira a grafia ou tente só o sobrenome.</Empty>
+        : (
+          <div className={`srch-res ${loading ? 'stale' : ''}`}>
+            {!!data.campeonatos.length && <Panel><Head sub={`${data.campeonatos.length}`}>Campeonatos</Head><HitList items={data.campeonatos} /></Panel>}
+            {/* só as seções com resultado; com as duas, lado a lado */}
+            <div className={data.times.length && data.jogadores.length ? 'grid-2' : 'srch-res'}>
+              {!!data.times.length && <Panel><Head sub={`${data.times.length}`}>Times e equipes</Head><HitList items={data.times} /></Panel>}
+              {!!data.jogadores.length && <Panel><Head sub={`${data.jogadores.length}`}>Jogadores e pilotos</Head><HitList items={data.jogadores} /></Panel>}
+            </div>
+          </div>
+        )}
+    </>
+  );
 }
 
 /* ---------- Favoritos ---------- */

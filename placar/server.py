@@ -48,7 +48,7 @@ from .ai import client as ai
 from .ai import news as ai_news
 from .core import auth, bolao, identity, news_filter, prob
 from .sources import espn, footballdata, news_rss, stadium, transfermarkt
-from . import ai_routes, sports
+from . import ai_routes, search, sports
 
 ROOT = config.ROOT
 PUBLIC = config.PUBLIC
@@ -720,6 +720,9 @@ def route(path: str, query: dict | None = None) -> tuple[int, bytes, str]:
     return st, body, src
 
 
+search._route, search._espn, search._footballdata, search._sports = route, espn, footballdata, sports
+
+
 def _route(path: str, query: dict | None = None) -> tuple[int, bytes, str]:
     query = query or {}
     camps, ids = plan()
@@ -1207,6 +1210,7 @@ def scheduler():
             every("espn", 60, espn.warm)  # temporadas das ~30 ligas da ESPN sempre em cache (em paralelo)
         every("agenda", 55, agenda)  # agenda da página inicial pronta antes do visitante pedir
         every("tabelas", 300, tables)
+        every("busca", 1800, search.warm)  # índice da busca (campeonatos e times) pronto e atualizado
         every("noticias", 600, lambda: route("/noticias", {"por_pagina": "20"}))
         every("craques", 1800, craques_pool)  # minijogo Craque do dia pronto antes do primeiro jogador
         every("forcas", 1500, rating_index)  # probabilidades das partidas prontas antes do visitante pedir
@@ -1501,6 +1505,15 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(429, b'{"message":"Muitas requisi\\u00e7\\u00f5es."}', "server")
             st, obj = ai_routes.handle_get(path, query, ip)
             return self._json(st, json.dumps(obj, ensure_ascii=False).encode(), "ia")
+        if path == "/busca":  # busca do site: campeonatos, times e jogadores (search.py)
+            if not _allow(ip, "api"):
+                return self._json(429, b'{"message":"Muitas requisi\\u00e7\\u00f5es."}', "server")
+            try:
+                obj = search.search(query.get("q", ""))
+            except Exception as e:  # noqa: BLE001
+                sys.stderr.write(f"erro na busca: {e!r}\n")
+                obj = {"q": query.get("q", ""), "campeonatos": [], "times": [], "jogadores": []}
+            return self._json(200, json.dumps(obj, ensure_ascii=False).encode(), "server")
         if not any(r.match(path) for r in ALLOWED):  # /me nunca é exposto: devolve as chaves
             return self._json(404, b'{"message":"Rota n\\u00e3o suportada"}', "server")
         if not _allow(ip, "api") or (HEAVY.match(path) and not _allow(ip, "heavy")):

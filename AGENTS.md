@@ -13,6 +13,7 @@ europeias), NBA e Fórmula 1. Interface e textos em **português do Brasil**.
     estaduais, ligas sul-americanas, Europa League, Conference, segundas divisões, copas nacionais, MLS, Liga MX, Arábia, Japão,
     Liga das Nações; temporada pelo `season.year` de cada jogo, etapas (Apertura/Clausura, fases) pelo `season.type`; rodadas reconstruídas), `footballdata.py`, `news_rss.py`, `transfermarkt.py`, `stadium.py` (estádio via Wikipédia/Wikidata, cache de 30 dias).
   - `sports/` — `nba.py` (ESPN), `f1.py` (Jolpica/Ergast + ESPN ao vivo), `openf1.py` (análise oficial de corrida, sessões encerradas).
+  - `search.py` — busca do site (`/api/busca?q=`): índice de campeonatos e times (futebol, NBA, F1) montado no servidor + jogadores pela busca da ESPN; apelidos ("timão", "jr").
   - `core/` — `prob.py` (probabilidades), `auth.py` (contas, sessões, captcha PoW), `identity.py`, `news_filter.py`.
   - `ai/` — IA: `client.py` (Gemini padrão; Anthropic se `ANTHROPIC_API_KEY`; Ollama opcional), `insights.py`, `assistant.py`, `news.py`, `foryou.py`.
 - `web/` — frontend novo: **React 19 + Vite + Framer Motion + TanStack Query**, rotas por hash (`#/...`).
@@ -22,7 +23,7 @@ europeias), NBA e Fórmula 1. Interface e textos em **português do Brasil**.
   - Compilado em `web/dist`, que o servidor Python serve em `/`.
 - `public/` — frontend antigo (vanilla JS). Não é mais exposto; o servidor só usa como reserva se `web/dist` não existir.
 - `data/transmissoes.json` — onde assistir (editável, relido quando muda).
-- `tests/` — `smoke_test.py` (sobe o servidor e confere ~52 itens) e `test_ai.py` (unitários de IA).
+- `tests/` — `smoke_test.py` (sobe o servidor e confere ~55 itens) e `test_ai.py` (unitários de IA).
 
 ## Rodar
 ```bash

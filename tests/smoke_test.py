@@ -213,6 +213,14 @@ def main():
         st, _, body = get("/api/noticias?campeonato_id=10&por_pagina=30")
         nw = json.loads(body).get("noticias", []) if st == 200 else []
         check("notícias do Brasileirão classificadas", all(10 in (n.get("campeonatos") or []) for n in nw), f"{len(nw)} notícias")
+        # busca do site: apelido acha o time; campeonato pelo nome; só os campos esperados
+        st, _, body = get("/api/busca?q=fla", timeout=180)
+        b = json.loads(body) if st == 200 else {}
+        check("busca acha time por apelido", any(t["to"] == "/time/900000819" for t in b.get("times", [])), f"{len(b.get('times', []))} times")
+        st, _, body = get("/api/busca?q=brasileir")
+        b = json.loads(body) if st == 200 else {}
+        check("busca acha campeonato", any(c["to"] == "/campeonato/10" for c in b.get("campeonatos", [])))
+        check("busca com 1 letra vazia", json.loads(get("/api/busca?q=a")[2]).get("times") == [])
     finally:
         proc.terminate()
         try:
