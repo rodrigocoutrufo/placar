@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApi } from '../lib/api.js';
 import { useLive } from '../lib/live.js';
@@ -11,6 +11,7 @@ import { Panel, Head, Skel, Wait, Empty, ErrorBox, Tabs, Stagger, Item, Reveal, 
 import { Standings, MatchRow } from '../components/match.jsx';
 import { ShareButton } from '../components/ShareCard.jsx';
 import { multiWith } from '../lib/multi.js';
+import { StadiumPanel } from '../components/Stadium.jsx';
 
 export default function Match() {
   const { id, tab = 'resumo' } = useParams();
@@ -97,10 +98,22 @@ function Scoreboard({ p, camp }) {
         </div>
         {team(A, 'away')}
       </div>
-      <div className="sb-info">{d && <span>{fmtDay(d)}, {fmtTime(p)}</span>}{p.estadio && <span>{p.estadio.nome_popular}</span>}<ShareButton p={p} camp={camp} />
+      <div className="sb-info">{d && <span>{fmtDay(d)}, {fmtTime(p)}</span>}{p.estadio && <StadiumLink p={p} />}<ShareButton p={p} camp={camp} />
         <Link to={multiWith(p.partida_id)} className="sb-share" title="Ver este jogo lado a lado com outros">▦ <span>Multijogo</span></Link></div>
     </section>
   );
+}
+
+// nome do estádio no placar: leva à vista 3D / 360° do estádio no resumo
+function StadiumLink({ p }) {
+  const nav = useNavigate();
+  const go = () => {
+    const el = document.getElementById('estadio');
+    if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    nav(`/partida/${p.partida_id}`); // em outra aba: volta ao resumo e desce até o estádio
+    setTimeout(() => { const e = document.getElementById('estadio'); if (e) e.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 600);
+  };
+  return <button type="button" className="sb-stadium" onClick={go} title="Ver o estádio em 3D e 360°">🏟 {p.estadio.nome_popular}</button>;
 }
 
 /* ---------- resumo ---------- */
@@ -120,6 +133,7 @@ function Summary({ p, camp }) {
             <StatRows p={p} rows={[['Finalizações', 'finalizacao.total'], ['Chutes no gol', 'finalizacao.no_gol'], ['Escanteios', 'escanteios'], ['Faltas', 'faltas']]} /></Panel>
         )}
         <H2H p={p} />
+        {p.estadio && p.estadio.nome_popular && <div id="estadio"><StadiumPanel name={p.estadio.nome_popular} team={p.time_mandante} /></div>}
       </div>
       <aside className="col side">
         {p.status !== 'finalizado' && <Watch w={p.onde_assistir} />}
@@ -179,10 +193,11 @@ function Prob({ p }) {
   );
 }
 
-/* linha do tempo: lances dos dois lados de uma linha central */
+/* linha do tempo: lances dos dois lados de uma linha central, do mais recente ao mais antigo, separados por tempo */
+const PERIOD_OF = (key) => (key >= 105 * 60 ? 'Prorrogação · 2º tempo' : key >= 90 * 60 ? 'Prorrogação' : key >= 45 * 60 ? '2º tempo' : '1º tempo');
 function Timeline({ p }) {
   const ev = [];
-  const add = (side, list, type) => (list || []).forEach((e) => ev.push({ side, type, e, m: evMinute(e), slug: e.periodo_slug }));
+  const add = (side, list, type) => (list || []).forEach((e) => ev.push({ side, type, e, m: evMinute(e) }));
   ['mandante', 'visitante'].forEach((s) => {
     add(s, (p.gols || {})[s], 'gol');
     add(s, ((p.cartoes || {}).amarelo || {})[s], 'amarelo');
@@ -194,21 +209,43 @@ function Timeline({ p }) {
   let h = 0, a = 0;
   ev.forEach((x) => { if (x.type === 'gol') { if (x.side === 'mandante') h++; else a++; x.score = `${h}–${a}`; } });
   ev.reverse();
+  const [ch, ca] = barColors(p.time_mandante, p.time_visitante);
   const nm = (at) => (at ? <Link to={`/jogador/${at.atleta_id}`}>{at.nome_popular}</Link> : <span className="muted">Comissão técnica</span>);
+  const count = (t) => ev.filter((x) => x.type === t).length;
+  const sub = [[count('gol'), 'gol', 'gols'], [count('amarelo') + count('vermelho'), 'cartão', 'cartões'], [count('sub'), 'substituição', 'substituições']]
+    .filter(([n]) => n).map(([n, one, many]) => `${n} ${n === 1 ? one : many}`).join(' · ');
+  // lances com o tempo de jogo como separador
+  const rows = [];
+  let last = null;
+  ev.forEach((x, i) => {
+    const per = x.m.label === 'Int' ? '1º tempo' : PERIOD_OF(x.m.key);
+    if (per !== last) { rows.push({ sep: per, k: `s${i}` }); last = per; }
+    rows.push({ ...x, k: i });
+  });
+  const team = (t) => <span className="lnc-team"><Crest t={t} size={22} /><b>{t.sigla || t.nome_popular}</b></span>;
   return (
-    <Panel>
-      <Head>Lances</Head>
-      <Stagger className="tl">
-        {ev.map((x, i) => (
-          <Item key={i} className={`tl-row ${x.side} t-${x.type}`}>
-            <div className="tl-side">
-              {x.type === 'gol' ? <><span className="tl-ico goal">{Icon.ball}</span><span>{nm(x.e.atleta)} <em className="tl-score">{x.score}</em>{(x.e.penalti || x.e.gol_contra) && <small>{x.e.penalti ? 'Pênalti' : 'Gol contra'}</small>}</span></>
-                : x.type === 'sub' ? <><span className="tl-ico sub">{Icon.sub}</span><span>{nm(x.e.entrou)}<small>sai {x.e.saiu ? x.e.saiu.nome_popular : ''}</small></span></>
-                  : <><span className="tl-ico">{Icon.card(x.type === 'amarelo' ? 'y' : 'r')}</span><span>{nm(x.e.atleta)}</span></>}
+    <Panel className="lnc" style={{ '--ch': ch, '--ca': ca }}>
+      <Head sub={sub}>Lances</Head>
+      <div className="lnc-head">{team(p.time_mandante)}<span />{team(p.time_visitante)}</div>
+      <Stagger className="lnc-list">
+        {rows.map((x) => (x.sep ? <Item key={x.k} className="lnc-sep"><span>{x.sep}</span></Item> : (
+          <Item key={x.k} className={`lnc-row ${x.side} k-${x.type}`}>
+            <div className="lnc-card">
+              {x.type === 'gol' ? <>
+                <span className="lnc-ico ball">{Icon.ball}</span>
+                <span className="lnc-txt"><b>{nm(x.e.atleta)}</b><small>{x.e.gol_contra ? 'Gol contra' : x.e.penalti ? 'Gol de pênalti' : 'Gol'}</small></span>
+                <em className="lnc-score">{x.score}</em>
+              </> : x.type === 'sub' ? <>
+                <span className="lnc-ico sub">{Icon.sub}</span>
+                <span className="lnc-txt"><b>{nm(x.e.entrou)}</b><small>sai {x.e.saiu ? x.e.saiu.nome_popular : '–'}</small></span>
+              </> : <>
+                <span className="lnc-ico">{Icon.card(x.type === 'amarelo' ? 'y' : 'r')}</span>
+                <span className="lnc-txt"><b>{nm(x.e.atleta)}</b><small>{x.type === 'amarelo' ? 'Cartão amarelo' : 'Cartão vermelho'}</small></span>
+              </>}
             </div>
-            <span className="tl-min">{x.m.label}</span>
+            <span className="lnc-min">{x.m.label}</span>
           </Item>
-        ))}
+        )))}
       </Stagger>
     </Panel>
   );

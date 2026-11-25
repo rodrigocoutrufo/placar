@@ -46,7 +46,7 @@ from pathlib import Path
 from . import config
 from .ai import client as ai
 from .ai import news as ai_news
-from .core import auth, bolao, identity, news_filter, prob
+from .core import auth, bolao, identity, news_filter, prob, venues
 from .sources import espn, footballdata, news_rss, stadium, transfermarkt
 from . import ai_routes, search, sports
 
@@ -797,7 +797,16 @@ def _route_fixed(path: str, query: dict | None = None) -> tuple[int, bytes, str]
             body = json.dumps(d, ensure_ascii=False).encode()
         except ValueError:
             pass
+    if st == 200 and VENUE_PATHS.match(path):  # nome atual do estádio (naming rights; core/venues.py)
+        try:
+            body = json.dumps(venues.fix(json.loads(body)), ensure_ascii=False).encode()
+        except ValueError:
+            pass
     return st, body, src
+
+
+# respostas que trazem estádio: partida, rodada/fase, jogos de um time, perfil do clube
+VENUE_PATHS = re.compile(r"^/(partidas/\d+|campeonatos/\d+/(rodadas|fases)/\d+|campeonatos/\d+/partidas|times/\d+(/partidas/[\w-]+(/[\w-]+)?)?|time-tm|ao-vivo)$")
 
 
 search._route, search._espn, search._footballdata, search._sports = route, espn, footballdata, sports
@@ -863,7 +872,12 @@ def _route(path: str, query: dict | None = None) -> tuple[int, bytes, str]:
         nome, clube = (query.get("nome") or "").strip()[:120], (query.get("clube") or "").strip()[:80]
         if not nome and not clube:
             return 400, b'{"message":"Informe o nome do est\\u00e1dio"}', "wikimedia"
-        e = stadium.lookup(nome, clube or None)
+        e = None
+        for n in venues.names(nome) or [nome]:  # nome atual primeiro; a Wikipédia às vezes ainda usa o antigo
+            e = stadium.lookup(n, clube or None)
+            if e:
+                e = {**e, "nome": venues.canonical(nome) or e.get("nome")}
+                break
         return (200, json.dumps(e, ensure_ascii=False).encode(), "wikimedia") if e else (404, b'{"message":"Est\\u00e1dio n\\u00e3o encontrado"}', "wikimedia")
 
     m = re.match(r"^/campeonatos/(\d+)/chances$", path)

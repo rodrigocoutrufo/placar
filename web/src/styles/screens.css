@@ -191,22 +191,6 @@
 .prob-bar i { display: block; height: 100%; }
 
 /* linha do tempo de lances */
-.tl { position: relative; padding: 10px 0 14px; }
-.tl::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: var(--rule2); transform: translateX(-50%); }
-.tl-row { position: relative; display: grid; grid-template-columns: 1fr 64px 1fr; align-items: center; min-height: 46px; }
-.tl-min { grid-column: 2; grid-row: 1; justify-self: center; z-index: 1; min-width: 46px; padding: 4px 6px; text-align: center; border-radius: 3px; background: var(--pan); border: 1px solid var(--rule2); font: 800 15px/1 var(--fc); }
-.tl-row.t-gol .tl-min { background: var(--ink); color: var(--pan); border-color: var(--ink); }
-.tl-side { display: flex; align-items: center; gap: 10px; padding: 6px 14px; font-size: 14px; }
-.tl-row.mandante .tl-side { grid-column: 1; grid-row: 1; justify-content: flex-end; text-align: right; flex-direction: row-reverse; }
-.tl-row.visitante .tl-side { grid-column: 3; grid-row: 1; }
-.tl-side small { display: block; font-size: 12px; color: var(--mute); }
-.tl-side a { font-weight: 600; }
-.tl-side a:hover { color: var(--hl); }
-.tl-ico { display: grid; place-items: center; flex: none; }
-.tl-ico.goal { width: 30px; height: 30px; border-radius: 50%; background: var(--ink); color: var(--pan); }
-.tl-ico.goal .ico { width: 18px; height: 18px; }
-.tl-ico.sub .ico { color: var(--win); width: 18px; }
-.tl-score { font: 800 15px var(--fc); font-style: normal; margin-left: 4px; padding: 2px 6px; background: var(--pan3); border-radius: 3px; }
 .card-ico { width: 12px; height: 16px; }
 
 /* estatísticas */
@@ -481,8 +465,6 @@ a.fchip:hover { border-color: var(--hl); color: var(--hl); }
   .poster-in { height: 240px; }
   .poster-logo { width: 80px; height: 80px; top: 24px; }
   .led-grid { grid-template-columns: 1fr; }
-  .tl-row { grid-template-columns: 1fr 50px 1fr; }
-  .tl-side { padding: 6px 8px; font-size: 13px; gap: 6px; }
   .play { grid-template-columns: 64px 1fr 56px; }
 }
 
@@ -761,3 +743,44 @@ a.fchip:hover { border-color: var(--hl); color: var(--hl); }
 .w-f1-row b { font-weight: 700; }
 .w-f1-row em { font: 800 16px var(--fc); font-style: normal; }
 .w-f1-row:hover b { color: var(--hl); }
+
+/* ================= partida: lances ================= */
+.lnc-head { display: grid; grid-template-columns: 1fr 64px 1fr; align-items: center; padding: 12px 16px 6px; }
+.lnc-team { display: flex; align-items: center; gap: 8px; font: 700 14px var(--fc); text-transform: uppercase; letter-spacing: .04em; color: var(--mute); }
+.lnc-head > .lnc-team:first-child { justify-content: flex-end; flex-direction: row-reverse; justify-self: end; }
+.lnc-list { position: relative; padding: 4px 0 16px; }
+.lnc-list::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: linear-gradient(var(--rule2), var(--rule2)) center / 2px 100% no-repeat; }
+.lnc-sep { position: relative; display: flex; justify-content: center; margin: 10px 0 6px; }
+.lnc-sep span { position: relative; z-index: 1; padding: 3px 12px; border-radius: 999px; background: var(--pan2); border: 1px solid var(--rule2); font: 700 12px var(--fc); text-transform: uppercase; letter-spacing: .08em; color: var(--mute); }
+.lnc-row { position: relative; display: grid; grid-template-columns: 1fr 64px 1fr; align-items: center; min-height: 52px; }
+.lnc-min { grid-column: 2; grid-row: 1; justify-self: center; z-index: 1; min-width: 44px; padding: 3px 6px; border-radius: 4px; text-align: center; background: var(--pan); border: 1px solid var(--rule2); font: 800 14px var(--fc); color: var(--ink2); font-variant-numeric: tabular-nums; }
+.lnc-card { display: flex; align-items: center; gap: 10px; max-width: 100%; margin: 4px 12px; padding: 7px 12px; border-radius: 8px; min-width: 0; }
+.lnc-row.mandante .lnc-card { grid-column: 1; grid-row: 1; justify-self: end; flex-direction: row-reverse; text-align: right; --c: var(--ch); }
+.lnc-row.visitante .lnc-card { grid-column: 3; grid-row: 1; justify-self: start; --c: var(--ca); }
+.lnc-txt { display: grid; min-width: 0; line-height: 1.2; }
+.lnc-txt b { font-weight: 600; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lnc-txt b a:hover { color: var(--hl); }
+.lnc-txt small { font-size: 12px; color: var(--mute); }
+.lnc-ico { display: grid; place-items: center; flex: none; width: 26px; height: 26px; }
+.lnc-ico .ico { width: 18px; height: 18px; }
+.lnc-ico.sub .ico { color: var(--win); }
+/* gol: cartão na cor do time, bola num círculo e o placar */
+.lnc-row.k-gol .lnc-card { background: color-mix(in srgb, var(--c) 16%, var(--pan2)); border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); }
+.lnc-row.k-gol .lnc-txt b { font-size: 16px; font-weight: 700; }
+.lnc-row.k-gol .lnc-txt small { color: var(--ink2); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: .06em; }
+.lnc-ico.ball { width: 32px; height: 32px; border-radius: 50%; background: var(--c); color: #fff; box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 25%, transparent); }
+.lnc-ico.ball .ico { width: 20px; height: 20px; }
+.lnc-score { flex: none; padding: 3px 8px; border-radius: 4px; background: var(--ink); color: var(--pan); font: 800 16px var(--fc); font-style: normal; font-variant-numeric: tabular-nums; }
+.lnc-row.k-gol .lnc-min { background: var(--ink); color: var(--pan); border-color: var(--ink); }
+@media (max-width: 640px) {
+  .lnc-head, .lnc-row { grid-template-columns: 1fr 48px 1fr; }
+  .lnc-card { margin: 4px 6px; padding: 6px 8px; gap: 7px; }
+  .lnc-txt b { font-size: 13px; } .lnc-row.k-gol .lnc-txt b { font-size: 14px; }
+  .lnc-ico.ball { width: 26px; height: 26px; } .lnc-score { font-size: 14px; padding: 2px 6px; }
+  .lnc-min { min-width: 38px; font-size: 13px; }
+}
+
+/* nome do estádio no placar: leva ao estádio em 3D / 360° */
+.sb-stadium { display: inline-flex; align-items: center; gap: 5px; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; text-decoration: underline; text-decoration-color: rgba(255, 255, 255, .35); text-underline-offset: 3px; }
+.sb-stadium:hover { text-decoration-color: currentColor; color: #fff; }
+#estadio { scroll-margin-top: 90px; }
