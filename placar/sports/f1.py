@@ -2,6 +2,7 @@
 
 import threading
 import time
+import urllib.error
 from datetime import datetime, timedelta, timezone
 
 from . import openf1
@@ -168,6 +169,11 @@ def f1_race(rnd: int) -> dict:
         out["sprint_resultado"] = [{"posicao": _int(x.get("position")), "piloto": _driver(x["Driver"], x.get("Constructor")),
                                     "tempo": (x.get("Time") or {}).get("time") or STATUS_PT.get(x.get("status"), x.get("status")),
                                     "pontos": float(x.get("points") or 0)} for x in results("sprint")]
+    try:  # quem já venceu neste circuito
+        from .f1_season import circuit_history
+        out["historico"] = circuit_history(rnd)
+    except Exception:  # noqa: BLE001
+        pass
     return out
 
 
@@ -208,6 +214,7 @@ DRIVER_TITLES = {"hamilton": 7, "max_verstappen": 4, "alonso": 2, "norris": 1}
 TEAM_TITLES = {"ferrari": 16, "mclaren": 10, "williams": 9, "mercedes": 8, "red_bull": 6}
 _jolt = threading.Lock()
 _jlast = [0.0]
+_jpause = [0.0]
 
 
 def _jget(path: str, ttl: float):
@@ -217,12 +224,21 @@ def _jget(path: str, ttl: float):
         hit = _cache.get(url)
     if hit and hit[0] > time.time():
         return hit[1]
+    if time.time() < _jpause[0]:  # a Jolpica pediu para esperar (429): nem tenta; usa a última cópia se houver
+        if hit:
+            return hit[1]
+        raise TimeoutError("Jolpica: limite de pedidos, tente em instantes")
     with _jolt:
         wait = 0.3 - (time.time() - _jlast[0])
         if wait > 0:
             time.sleep(wait)
         _jlast[0] = time.time()
-    return _get(url, ttl)
+    try:
+        return _get(url, ttl)
+    except urllib.error.HTTPError as e:
+        if e.code == 429:  # passou do limite por hora: pausa 2 min em vez de insistir (cada tentativa conta)
+            _jpause[0] = time.time() + 120
+        raise
 
 
 def _total(path: str) -> int:
@@ -317,28 +333,12 @@ def f1_driver(did: str) -> dict:
             out["campeonato"] = {"posicao": _int(me.get("position")), "pontos": float(me["points"]), "vitorias": _int(me.get("wins"), 0)}
     except Exception:  # noqa: BLE001
         pass
-    # duelo com o companheiro de equipe (corridas em que os dois terminaram e largadas)
-    if team:
-        try:
-            mates = [d for d in _jget(f"current/constructors/{team['constructorId']}/drivers.json", 86400)["MRData"]["DriverTable"]["Drivers"] if d["driverId"] != did]
-            if mates:
-                mate = mates[0]
-                theirs = {r["round"]: r["Results"][0] for r in _jget(f"current/drivers/{mate['driverId']}/results.json?limit=40", 1800)["MRData"]["RaceTable"]["Races"]}
-                h = {"corrida": [0, 0], "largada": [0, 0], "pontos": [0.0, 0.0]}
-                for r in races:
-                    a, b = r["Results"][0], theirs.get(r["round"])
-                    if not b:
-                        continue
-                    h["pontos"][0] += float(a.get("points") or 0)
-                    h["pontos"][1] += float(b.get("points") or 0)
-                    if (a.get("positionText") or "").isdigit() and (b.get("positionText") or "").isdigit():
-                        h["corrida"][0 if int(a["position"]) < int(b["position"]) else 1] += 1
-                    ga, gb = _int(a.get("grid"), 0), _int(b.get("grid"), 0)
-                    if ga and gb:
-                        h["largada"][0 if ga < gb else 1] += 1
-                out["companheiro"] = {"piloto": _driver(mate, team), **h}
-        except Exception:  # noqa: BLE001
-            pass
+    # duelo com o companheiro com quem mais correu na temporada (f1_season.py)
+    try:
+        from .f1_season import teammate_duel
+        out["companheiro"] = teammate_duel(did)
+    except Exception:  # noqa: BLE001
+        pass
     return out
 
 

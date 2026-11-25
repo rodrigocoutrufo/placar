@@ -43,6 +43,7 @@ const Player = lazy(() => import('./pages/Player.jsx'));
 const Games = lazy(() => import('./pages/Games.jsx'));
 const named = (load, name) => lazy(() => load().then((m) => ({ default: m[name] })));
 const sp = () => import('./pages/SportProfiles.jsx');
+const F1Compare = named(() => import('./pages/F1Season.jsx'), 'F1Compare');
 const NBATeam = named(sp, 'NBATeam'), NBAPlayer = named(sp, 'NBAPlayer'), F1Driver = named(sp, 'F1Driver'), F1Team = named(sp, 'F1Team');
 const misc = () => import('./pages/Misc.jsx');
 const Search = named(misc, 'Search'), Favorites = named(misc, 'Favorites'), About = named(misc, 'About'), Compare = named(misc, 'Compare');
@@ -99,6 +100,7 @@ function App() {
           <Route path="/f1/corrida/:rnd" element={<Page><F1Race /></Page>} />
           <Route path="/f1/piloto/:id" element={<Page><F1Driver /></Page>} />
           <Route path="/f1/equipe/:id" element={<Page><F1Team /></Page>} />
+          <Route path="/f1/comparar/:a?/:b?" element={<Page><F1Compare /></Page>} />
           <Route path="/f1/:tab?" element={<Page><F1 /></Page>} />
           <Route path="/noticias" element={<Page><News /></Page>} />
           <Route path="/multijogo" element={<Page><Multi /></Page>} />

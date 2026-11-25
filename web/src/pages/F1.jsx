@@ -8,6 +8,8 @@ import { LOGO } from '../lib/themes.js';
 import { parseISO, fmtDT } from '../lib/format.js';
 import { Panel, Head, Skel, Empty, Tabs, Stagger, Item, Countdown, LiveDot, Watch, CountUp, ease } from '../components/ui.jsx';
 
+import { F1SeasonTab } from './F1Season.jsx';
+
 const flag = (src, w = 22) => (src ? <img className="flag" src={src} alt="" width={w} loading="lazy" /> : null);
 const classic = (h) => `#${h}`;
 
@@ -77,7 +79,8 @@ export default function F1() {
         </motion.div>
       )}
 
-      <div className="sticky-tabs"><Tabs id="f1" active={tab} items={[['pilotos', 'Pilotos', '/f1'], ['construtores', 'Construtores', '/f1/construtores'], ['calendario', 'Calendário', '/f1/calendario']]} /></div>
+      <div className="sticky-tabs"><Tabs id="f1" active={tab} items={[['pilotos', 'Pilotos', '/f1'], ['construtores', 'Construtores', '/f1/construtores'], ['calendario', 'Calendário', '/f1/calendario'], ['temporada', 'Temporada', '/f1/temporada']]} /></div>
+      {tab === 'temporada' ? <F1SeasonTab /> : (
       <div className="grid-main">
         <div className="col">
           <AnimatePresence mode="wait">
@@ -98,6 +101,7 @@ export default function F1() {
           <Panel className="note">Calendário, resultados e classificação: Jolpica (base Ergast). Sessão ao vivo: ESPN. Horários de Brasília.</Panel>
         </aside>
       </div>
+      )}
     </>
   );
 }

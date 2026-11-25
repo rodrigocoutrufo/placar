@@ -178,7 +178,10 @@ export function F1Driver() {
         </div>
         <aside className="col side">
           {tm && <Panel><Head>Duelo com o companheiro</Head><div className="duel-head"><b>{d.sobrenome}</b><span>×</span><Link to={`/f1/piloto/${tm.piloto.id}`}>{tm.piloto.sobrenome}</Link></div>
-            <div className="pad">{duel('Chegou à frente', tm.corrida[0], tm.corrida[1])}{duel('Largou à frente', tm.largada[0], tm.largada[1])}{duel('Pontos', tm.pontos[0], tm.pontos[1])}</div></Panel>}
+            <div className="pad">{duel('Chegou à frente', tm.corrida[0], tm.corrida[1])}{duel('Classificou à frente', tm.classificacao[0], tm.classificacao[1])}{duel('Pontos', tm.pontos[0], tm.pontos[1])}
+              <small className="muted">{tm.rodadas} etapas juntos{(tm.outros || []).length ? ` · também correu com ${tm.outros.map((o) => o.sobrenome).join(', ')}` : ''}</small>
+              <Link className="btn ghost sm duel-cmp" to={`/f1/comparar/${d.id}/${tm.piloto.id}`}>Comparar em detalhe</Link></div></Panel>}
+          <Panel className="cmp-cta"><Link to={`/f1/comparar/${d.id}`}><b>Comparar {d.sobrenome} com outro piloto</b><small>Pontos, vitórias, poles, média de chegada e frente a frente</small></Link></Panel>
           <Panel><Head>Ficha</Head><dl className="facts">{[['Número', d.numero], ['Sigla', d.sigla], ['Equipe', team.nome], ['Nascimento', d.nascimento]].filter(([, v]) => v).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl></Panel>
           <Panel className="note">Títulos: levantamento até 2025 + o de 2026 quando já decidido. Demais números: Jolpica (base Ergast).</Panel>
         </aside>

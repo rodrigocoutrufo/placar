@@ -84,7 +84,7 @@ TTL_RULES = [
 ]
 TTL_RULES = [(re.compile(p), a, b) for p, a, b in TTL_RULES]
 ALLOWED = [r for r, _, _ in TTL_RULES if r.pattern != "^/me$"] + [re.compile(r"^/(jogador-tm|time-tm|estadio|minijogos/craques)$"), re.compile(r"^/campeonatos/\d+/chances$"),
-                                                                 re.compile(r"^/esportes/(nba/(jogos|jogo/\d+|classificacao|time/\d+|jogador/\d+)|f1(/corrida/\d+(/analise)?|/piloto/[a-z_]+|/equipe/[a-z_]+)?)$"),
+                                                                 re.compile(r"^/esportes/(nba/(jogos|jogo/\d+|classificacao|time/\d+|jogador/\d+)|f1(/corrida/\d+(/analise)?|/piloto/[a-z_]+|/equipe/[a-z_]+|/temporada|/comparar/[a-z_]+/[a-z_]+)?)$"),
                                                                  re.compile(r"^/transmissoes$"), re.compile(r"^/agenda$")]
 NEWS_PARAMS = {"pagina", "por_pagina", "time_id", "campeonato_id", "provedor", "desde", "tipo", "assunto", "competicao"}
 # Ordem de exibição: Brasil primeiro (Série A antes da Série B), depois América do Sul e Europa
@@ -1217,6 +1217,7 @@ def scheduler():
         every("bolao", 300, bolao.refresh_results)  # placar dos jogos com palpite do bolão (para os pontos)
         every("limpeza", 3600, auth.cleanup)  # sessões, códigos e desafios vencidos
         every("f1-analise", 3 * 3600, f1_warm)  # análise da última corrida (OpenF1) pronta antes do visitante pedir
+        every("f1-temporada", 1500, lambda: sports.handle("/f1/temporada"))  # estatísticas e duelos da temporada (~12 pedidos à Jolpica)
         if ai.background_news():
             every("ia-noticias", 900, ai_label_news)  # IA rotula as manchetes novas (campeonato, categoria, times)
         if footballdata.TOKEN:

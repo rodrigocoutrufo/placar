@@ -64,6 +64,27 @@ export default function F1Race() {
         </Panel>
       )}
       {!r.resultado.length && !r.classificacao.length && <Panel><Empty>Os resultados aparecem aqui depois de cada sessão.</Empty></Panel>}
+      {r.historico && r.historico.corridas > 0 && <History h={r.historico} circuito={r.circuito} />}
     </>
+  );
+}
+
+// quem já venceu neste circuito (Jolpica, desde a primeira corrida da F1 ali)
+function History({ h, circuito }) {
+  return (
+    <Panel className="hist">
+      <Head sub={`${h.corridas} GPs desde ${h.primeira}`}>Vencedores em {circuito}</Head>
+      <div className="hist-grid">
+        <Stagger className="hist-list">{h.vencedores.map((w) => (
+          <Item key={w.ano}><a className="hist-row" href={`#/f1/piloto/${w.piloto.id}`} style={{ '--tc': (w.piloto.equipe || {}).cor || '#888' }}>
+            <span className="hist-y">{w.ano}</span>{flag(w.piloto.bandeira, 18)}<b>{w.piloto.nome}</b><small>{(w.piloto.equipe || {}).nome}{w.largada === 1 ? ' · da pole' : w.largada > 1 ? ` · largou em ${w.largada}º` : ''}</small>
+          </a></Item>
+        ))}</Stagger>
+        <div className="hist-side">
+          {h.maiores.length > 0 && <><h4 className="st-sec">Maiores vencedores</h4>{h.maiores.map((m, i) => <a key={m.piloto.id} className="hist-top" href={`#/f1/piloto/${m.piloto.id}`}><span className="p">{i + 1}</span>{flag(m.piloto.bandeira, 18)}<b>{m.piloto.nome}</b><em>{m.vitorias}</em></a>)}</>}
+          <div className="hist-kpi"><b>{Math.round((h.pole_venceu / h.corridas) * 100)}%</b><span>das vitórias saíram da pole ({h.pole_venceu} de {h.corridas})</span></div>
+        </div>
+      </div>
+    </Panel>
   );
 }
