@@ -776,8 +776,36 @@ def assistencias(lid):
 
 
 # ---------------------------------------------------------------- ao vivo / partida
+# Ao vivo rápido: a liga com jogo rolando (ou começando em até 20 min) é consultada a cada 4 s; as paradas, a cada
+# 90 s. Assim um gol chega em poucos segundos sem consultar as ~30 ligas o tempo todo.
+LIVE_TTL, IDLE_TTL, SOON = 4, 90, 20 * 60
+_hot: dict[int, bool] = {}
+
+
+def _is_hot(sb) -> bool:
+    now = time.time()
+    for e in sb.get("events", []):
+        st = (e.get("status") or {}).get("type", {}).get("state")
+        if st == "in":
+            return True
+        if st == "pre":
+            try:
+                t = datetime.fromisoformat(e["date"].replace("Z", "+00:00")).timestamp()
+            except (KeyError, ValueError):
+                continue
+            if t - now < SOON:
+                return True
+    return False
+
+
+def live_soon() -> bool:
+    """Algum jogo rolando ou para começar logo (o ciclo do ao vivo fica mais rápido)."""
+    return any(_hot.values())
+
+
 def _live_of(lid):
-    sb = _safe(_get, f"{SITE}/{LEAGUES[lid]['slug']}/scoreboard", 15) or {}
+    sb = _safe(_get, f"{SITE}/{LEAGUES[lid]['slug']}/scoreboard", LIVE_TTL if _hot.get(lid, True) else IDLE_TTL) or {}
+    _hot[lid] = _is_hot(sb)
     out = []
     for e in sb.get("events", []):
         if (e.get("status") or {}).get("type", {}).get("state") == "in":
@@ -998,14 +1026,14 @@ def _sim(a, b):
     return exact + 0.6 * pref
 
 
-def find_event(code: str, iso: str | None, home: str, away: str):
+def find_event(code: str, iso: str | None, home: str, away: str, ttl: float = 20):
     slug = BRIDGE.get(code)
     if not slug or not iso:
         return None
     dt = datetime.strptime(iso, "%Y-%m-%dT%H:%M:%S%z")
     best, score = None, 0.0
     try:
-        sb = _get(f"{SITE}/{slug}/scoreboard?dates={dt.astimezone(timezone.utc):%Y%m%d}", 20)
+        sb = _get(f"{SITE}/{slug}/scoreboard?dates={dt.astimezone(timezone.utc):%Y%m%d}", ttl)
     except Exception:  # noqa: BLE001
         return None
     for e in sb.get("events", []):
@@ -1023,10 +1051,10 @@ def find_event(code: str, iso: str | None, home: str, away: str):
     return best if score >= 1 else None
 
 
-def bridge(m: dict, code: str, detail: bool = True) -> dict:
+def bridge(m: dict, code: str, detail: bool = True, ttl: float = 20) -> dict:
     """Completa uma partida de outra fonte com o minuto, o placar ao vivo e (detail) escalações e lances da ESPN."""
     try:
-        e = find_event(code, m.get("data_realizacao_iso"), m["time_mandante"]["nome_popular"], m["time_visitante"]["nome_popular"])
+        e = find_event(code, m.get("data_realizacao_iso"), m["time_mandante"]["nome_popular"], m["time_visitante"]["nome_popular"], ttl)
         if not e:
             return m
         comp = e["competitions"][0]

@@ -4,6 +4,8 @@
 import { store, getFavs } from './store.js';
 import { norm } from './format.js';
 
+const pushIsOn = () => { try { return localStorage.getItem('vyra.push') === '1' && Notification.permission === 'granted'; } catch { return false; } };
+
 const KEY = 'placar.notif';
 const DEF = {
   comps: [10], // sem configurar: Brasileirão + times seguidos (com ~40 campeonatos, "tudo" viraria barulho)
@@ -113,6 +115,8 @@ export async function enableBrowser() {
 }
 export function systemNotify(title, body, { icon, tag, url, force = false } = {}) {
   if (browserPermission() !== 'granted') return;
+  // com o push ligado, a notificação do sistema vem pelo servidor (também com o site fechado): não duplica
+  if (!force && pushIsOn()) return;
   if (!force && (!getNotif().navegador || !document.hidden)) return; // com a aba à vista, basta o aviso do site (force: teste)
   const opts = { body, icon: icon || '/icons/icon-192.png', badge: '/icons/icon-192.png', tag, data: { url: url || '/' } };
   const show = (reg) => (reg ? reg.showNotification(title, opts) : new Notification(title, opts));

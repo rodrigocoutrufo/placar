@@ -431,3 +431,8 @@ img[src$="#mono"] { filter: brightness(0) invert(1); }
 .upd .btn.primary { height: 34px; background: var(--acc); border-color: var(--acc); color: var(--acc-ink); cursor: pointer; }
 .upd-x { border: 0; background: none; color: rgba(255, 255, 255, .55); font-size: 20px; cursor: pointer; }
 @media (max-width: 760px) { .upd { bottom: 76px; flex-wrap: wrap; } }
+
+/* avisos com o site fechado (Web Push) */
+.np-push { display: grid; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.np-push .btn { justify-content: center; height: 38px; cursor: pointer; }
+.np-push .btn:disabled { opacity: .7; cursor: wait; }

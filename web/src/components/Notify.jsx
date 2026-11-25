@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStoreVersion, getFavs } from '../lib/store.js';
+import { pushSupported, pushOn, needsInstall, enablePush, disablePush, testPush } from '../lib/push.js';
 import { getNotif, setNotif, toggleComp, toggleTeam, toggleNbaTeam, toggleF1Driver, toggleF1Team, followsTeam, browserSupport, browserPermission, enableBrowser } from '../lib/notify.js';
 import { useComps } from '../lib/data.js';
 import { followsCompHome, toggleFollowComp } from '../lib/follow.js';
@@ -71,6 +72,32 @@ function TestButton({ perm }) {
   );
 }
 
+// avisos com o Vyra fechado (Web Push): liga neste aparelho, testa e desliga
+function PushControl({ onPerm }) {
+  const [on, setOn] = useState(pushOn());
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  if (!pushSupported()) return <p className="np-note">Este navegador não recebe avisos com o site fechado.</p>;
+  if (needsInstall()) return <p className="np-note">No iPhone, os avisos com o Vyra fechado chegam com o app instalado: toque em Compartilhar → <b>Adicionar à Tela de Início</b> e ative aqui pelo app.</p>;
+  const run = async (fn) => { setBusy(true); setMsg(''); try { await fn(); } catch (e) { setMsg(e.message || 'Não deu certo. Tente de novo.'); } finally { setBusy(false); } };
+  const toggle = (v) => run(async () => {
+    if (v) {
+      const r = await enablePush();
+      onPerm(Notification.permission);
+      if (r !== 'granted') { setMsg(r === 'denied' ? 'As notificações estão bloqueadas para este site. Libere no cadeado ao lado do endereço.' : 'Sem permissão para notificar.'); return; }
+    } else await disablePush();
+    setOn(pushOn());
+  });
+  const test = () => run(async () => { await testPush(); setMsg('Aviso enviado. Ele chega em alguns segundos, mesmo com o Vyra minimizado ou fechado.'); });
+  return (
+    <div className="np-push">
+      <Switch on={on} onChange={(v) => !busy && toggle(v)} hint="Gols, começo e fim dos jogos que você segue, NBA e F1, mesmo com o Vyra fechado">Avisar com o Vyra fechado</Switch>
+      {on && <button type="button" className="btn" onClick={test} disabled={busy}>{busy ? 'Enviando…' : 'Testar aviso com o site fechado'}</button>}
+      {msg && <p className="np-note">{msg}</p>}
+    </div>
+  );
+}
+
 function Panel({ onClose }) {
   useStoreVersion();
   const n = getNotif();
@@ -100,7 +127,7 @@ function Panel({ onClose }) {
                 : perm === 'denied' ? <p className="np-note">As notificações estão bloqueadas para este site. Libere no cadeado ao lado do endereço.</p>
                   : <button type="button" className="btn primary np-ask" onClick={askBrowser}>{bellIcon(true)} Ativar notificações do navegador</button>}
             <TestButton perm={perm} />
-            <p className="np-note">Com o site fechado ainda não chegam: isso precisa do site no ar (hospedagem) e de notificação push.</p>
+            <PushControl onPerm={setPerm} />
           </section>
           <section>
             <h3>Avisar quando</h3>

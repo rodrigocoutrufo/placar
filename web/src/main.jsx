@@ -24,6 +24,7 @@ import Intro from './components/Intro.jsx';
 import Assistant from './components/Assistant.jsx';
 import { ease, QueryBoundary } from './components/ui.jsx';
 import Home from './pages/Home.jsx';
+import { startPushSync } from './lib/push.js';
 
 const Competitions = lazy(() => import('./pages/Competitions.jsx'));
 const Competition = lazy(() => import('./pages/Competition.jsx'));
@@ -134,6 +135,7 @@ function App() {
 
 startLive();
 loadAccount();
+startPushSync(); // avisos com o site fechado: mantém o servidor em dia com o que a pessoa segue
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
 
 createRoot(document.getElementById('root')).render(

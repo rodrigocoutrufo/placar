@@ -46,7 +46,7 @@ from pathlib import Path
 from . import config
 from .ai import client as ai
 from .ai import news as ai_news
-from .core import auth, bolao, identity, news_filter, prob, venues
+from .core import auth, bolao, identity, news_filter, prob, venues, webpush
 from .sources import espn, footballdata, news_rss, stadium, transfermarkt
 from . import ai_routes, search, sports
 
@@ -683,6 +683,34 @@ def agenda() -> bytes:
         return body
 
 
+# ---------------------------------------------------------------- Web Push (avisos com o site fechado)
+def push_handle(method: str, path: str, body: dict) -> tuple[int, dict]:
+    kind = path.rsplit("/", 1)[1]
+    if kind == "chave":  # chave pública VAPID: o navegador precisa dela para se inscrever
+        return 200, {"chave": webpush.public_key()}
+    if method != "POST":
+        return 405, {"message": "Use POST"}
+    sub = body.get("inscricao") or {}
+    ep = str(sub.get("endpoint") or body.get("endpoint") or "")
+    if kind == "inscrever":
+        try:
+            webpush.subscribe(sub, body.get("prefs") or {})
+        except (ValueError, TypeError) as e:
+            return 400, {"message": f"Inscrição inválida: {e}"}
+        return 200, {"ok": True}
+    if kind == "cancelar":
+        webpush.unsubscribe(ep)
+        return 200, {"ok": True}
+    # teste: manda um aviso só para esta inscrição (precisa estar cadastrada)
+    with webpush._db_lock, webpush._conn() as c:
+        row = c.execute("SELECT endpoint, p256dh, auth FROM inscricoes WHERE endpoint=?", (ep,)).fetchone()
+    if not row:
+        return 404, {"message": "Inscrição não encontrada"}
+    st = webpush.send_one(*row, {"title": "⚽ Gol do Vyra! (teste)", "body": "Assim chegam os avisos com o site fechado.",
+                                 "tag": "teste", "url": "/#/"}, ttl=60)
+    return (200 if st in (200, 201, 202) else 502), {"status": st}
+
+
 # ---------------------------------------------------------------- roteamento
 # ---------------------------------------------------------------- logos dos campeonatos
 # As fontes às vezes têm o logo antigo (Paulistão com o escudo da FPF, Süper Lig "Spor Toto", Ligue 1 de antes de
@@ -845,7 +873,7 @@ def _route(path: str, query: dict | None = None) -> tuple[int, bytes, str]:
             try:
                 for m in footballdata.ao_vivo():  # minuto e placar em tempo real pela ESPN
                     code = footballdata.LEAGUES.get(m["campeonato"]["campeonato_id"], {}).get("code")
-                    live.append(espn.bridge(m, code, detail=False) if code else m)
+                    live.append(espn.bridge(m, code, detail=False, ttl=espn.LIVE_TTL) if code else m)  # placar da ESPN a cada 4 s
             except Exception:  # noqa: BLE001 — sem a Europa, segue com o resto
                 pass
         return 200, json.dumps(live, ensure_ascii=False).encode(), "live" if ids else "espn"
@@ -1111,7 +1139,7 @@ def enrich_match(body: bytes) -> bytes:
 class LiveHub:
     """Observa os jogos ao vivo a cada 15 s e empurra as mudanças para todos os navegadores conectados.
     Um único ciclo atende todos os visitantes: o consumo das APIs não cresce com a audiência."""
-    INTERVAL = 15
+    INTERVAL, FAST = 20, 5
     MAX_CLIENTS = int(os.environ.get("MAX_STREAMS", "500"))
 
     def __init__(self):
@@ -1137,6 +1165,11 @@ class LiveHub:
             self.clients.discard(q)
 
     def publish(self, event: str, data):
+        if event in ("gol", "periodo", "nba", "f1"):  # também para quem está com o site fechado (Web Push)
+            try:
+                webpush.dispatch(event, data)
+            except Exception as e:  # noqa: BLE001 — o aviso por push nunca derruba o ao vivo
+                sys.stderr.write(f"push: {e!r}\n")
         msg = f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False, separators=(',', ':'))}\n\n".encode()
         with self.lock:
             for q in list(self.clients):
@@ -1237,11 +1270,14 @@ class LiveHub:
 
     def run(self):
         while True:
+            t0 = time.time()
             try:
                 self.tick()
             except Exception as e:  # noqa: BLE001 — o ciclo nunca para
                 sys.stderr.write(f"ao vivo: {e!r}\n")
-            time.sleep(self.INTERVAL)
+            # jogo rolando (ou começando): a cada 5 s; sem nada: a cada 20 s
+            fast = bool(self.live) or (ESPN_ON and espn.live_soon())
+            time.sleep(max(0.5, (self.FAST if fast else self.INTERVAL) - (time.time() - t0)))
 
 
 HUB = LiveHub()
@@ -1341,7 +1377,8 @@ STATUS_TOKEN = os.environ.get("STATUS_TOKEN", "")
 RATE = {"api": (int(os.environ.get("RATE_API_MIN", "240")), 60), "heavy": (int(os.environ.get("RATE_HEAVY_MIN", "20")), 60)}
 HEAVY = re.compile(r"^/(jogador-tm|time-tm|estadio)$")
 AUTH_PATH = re.compile(r"^/(auth|conta)(/[\w-]+){1,2}$")
-BOLAO_PATH = re.compile(r"^/bolao(/[\w-]+){1,3}$")  # bolão com amigos (core/bolao.py), precisa de conta
+BOLAO_PATH = re.compile(r"^/bolao(/[\w-]+){1,3}$")
+PUSH_PATH = re.compile(r"^/push/(chave|inscrever|cancelar|teste)$")  # notificações com o site fechado (core/webpush.py)  # bolão com amigos (core/bolao.py), precisa de conta
 AI_POST = {"/ia/perguntar"}
 _frames = []  # iframes de fora liberados um a um
 if auth.TURNSTILE_SITE and auth.TURNSTILE_SECRET:  # captcha da Cloudflare: libera só o domínio dela
@@ -1495,7 +1532,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             parsed = urllib.parse.urlsplit(self.path)
             path = parsed.path[4:].rstrip("/") if parsed.path.startswith("/api/") else ""
-            if not AUTH_PATH.match(path) and not BOLAO_PATH.match(path) and path not in AI_POST:
+            if not AUTH_PATH.match(path) and not BOLAO_PATH.match(path) and not PUSH_PATH.match(path) and path not in AI_POST:
                 return self._json(405, b'{"message":"M\\u00e9todo n\\u00e3o permitido"}', "server")
             return self._auth("POST", path, parsed)
         except (BrokenPipeError, ConnectionResetError):
@@ -1538,12 +1575,17 @@ class Handler(BaseHTTPRequestHandler):
         ctx = {"ip": self._ip(), "cookies": self._cookies(), "host": self.headers.get("Host", ""),
                "proto": "https" if fwd_proto == "https" else "http", "origin": self.headers.get("Origin"),
                "xrw": self.headers.get("X-Requested-With"), "ua": self.headers.get("User-Agent", "")}
-        if path in AI_POST or (BOLAO_PATH.match(path) and method == "POST"):  # mesma proteção CSRF das contas
+        if path in AI_POST or ((BOLAO_PATH.match(path) or PUSH_PATH.match(path)) and method == "POST"):  # mesma proteção CSRF das contas
             origin = ctx["origin"] or ""
             if ctx["xrw"] != "placar" or (origin and urllib.parse.urlsplit(origin).netloc != ctx["host"]):
                 return self._json(403, b'{"message":"Requisi\\u00e7\\u00e3o bloqueada por seguran\\u00e7a."}', "server")
         if path in AI_POST:  # assistente
             st, obj = ai_routes.handle_post(path, body, ctx)
+            headers = []
+        elif PUSH_PATH.match(path):  # inscrição para avisos com o site fechado
+            if not _allow(ctx["ip"], "api"):
+                return self._json(429, b'{"message":"Muitas requisi\\u00e7\\u00f5es."}', "server")
+            st, obj = push_handle(method, path, body)
             headers = []
         elif BOLAO_PATH.match(path):  # bolão com amigos
             st, obj = bolao.handle(method, path, dict(urllib.parse.parse_qsl(parsed.query)), body, ctx)
@@ -1601,7 +1643,7 @@ class Handler(BaseHTTPRequestHandler):
             if st != 200:
                 return self._json(st, b'{"message":"Imagem indispon\\u00edvel"}', "server")
             return self._send(200, body, ctype, "public, max-age=604800")
-        if AUTH_PATH.match(path) or BOLAO_PATH.match(path):
+        if AUTH_PATH.match(path) or BOLAO_PATH.match(path) or PUSH_PATH.match(path):
             return self._auth("GET", path, parsed)
         if path.startswith("/ia/"):  # camada de IA (ai_routes.py)
             if not _allow(ip, "api"):
