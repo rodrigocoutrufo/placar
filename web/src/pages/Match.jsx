@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApi } from '../lib/api.js';
@@ -12,6 +12,8 @@ import { Standings, MatchRow } from '../components/match.jsx';
 import { ShareButton } from '../components/ShareCard.jsx';
 import { multiWith } from '../lib/multi.js';
 import { StadiumPanel } from '../components/Stadium.jsx';
+
+const MatchRoom = lazy(() => import('./MatchRoom.jsx'));
 
 export default function Match() {
   const { id, tab = 'resumo' } = useParams();
@@ -35,6 +37,7 @@ export default function Match() {
   const tabs = [['resumo', 'Resumo', base]];
   if (!onlyFd || p.escalacoes) tabs.push(['escalacoes', 'Escalações', `${base}/escalacoes`]);
   if (!onlyFd || p.estatisticas) tabs.push(['estatisticas', 'Estatísticas', `${base}/estatisticas`]);
+  tabs.push(['sala', 'Sala do jogo', `${base}/sala`]); // resenha: bate-papo, reações, enquetes e nota da torcida
   if (isLeague(camp)) tabs.push(['tabela', 'Tabela', `${base}/tabela`]);
 
   return (
@@ -43,7 +46,8 @@ export default function Match() {
       <div className="sticky-tabs"><Tabs items={tabs} active={tab} id="match" /></div>
       <AnimatePresence mode="wait">
         <motion.div key={tab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.3, ease }}>
-          {tab === 'escalacoes' ? <Lineups p={m} />
+          {tab === 'sala' ? <Suspense fallback={<Skel h={480} />}><MatchRoom p={m} /></Suspense>
+            : tab === 'escalacoes' ? <Lineups p={m} />
             : tab === 'estatisticas' ? <Stats p={m} />
               : tab === 'tabela' ? <TableTab p={m} camp={camp} />
                 : <Summary p={m} camp={camp} />}
@@ -125,6 +129,14 @@ function Summary({ p, camp }) {
   return (
     <div className="grid-main">
       <div className="col">
+        {p.status !== 'finalizado' || Date.now() - (parseDate(p) || 0) < 3 * 86400e3 ? (
+          <Link className="room-cta" to={`/partida/${p.partida_id}/sala`}>
+            <span className="em" aria-hidden>{p.status === 'finalizado' ? '⭐' : '💬'}</span>
+            <span><b>{p.status === 'finalizado' ? 'Dê sua nota aos jogadores' : live ? 'Resenha ao vivo' : 'Esquenta do jogo'}</b>
+              <small>{p.status === 'finalizado' ? 'Nota da torcida e o craque do jogo na Sala do jogo' : 'Bate-papo, reações e enquetes na Sala do jogo'}</small></span>
+            <span className="phead-more" style={{ flex: 'none' }}>Entrar →</span>
+          </Link>
+        ) : null}
         <AIInsight p={p} />
         <Prob p={p} />
         <Timeline p={p} />

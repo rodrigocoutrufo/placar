@@ -784,3 +784,94 @@ a.fchip:hover { border-color: var(--hl); color: var(--hl); }
 .sb-stadium { display: inline-flex; align-items: center; gap: 5px; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; text-decoration: underline; text-decoration-color: rgba(255, 255, 255, .35); text-underline-offset: 3px; }
 .sb-stadium:hover { text-decoration-color: currentColor; color: #fff; }
 #estadio { scroll-margin-top: 90px; }
+
+/* ================= Sala do jogo ================= */
+.room { display: grid; gap: 18px; }
+.room-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
+.room-side { display: grid; gap: 18px; }
+.room-main { display: flex; flex-direction: column; }
+/* termômetro da torcida */
+.room-reac { position: relative; padding: 12px 16px; border-bottom: 1px solid var(--rule); display: grid; gap: 8px; }
+.room-floats { position: absolute; inset: -140px 0 0 0; pointer-events: none; overflow: hidden; }
+.room-floats span { position: absolute; bottom: 12px; font-size: 28px; }
+.room-reac-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.room-reac-btn { position: relative; display: flex; align-items: center; justify-content: center; gap: 6px; height: 44px; border: 1px solid var(--rule2); border-radius: 10px; background: var(--pan2); cursor: pointer; overflow: hidden; font-size: 22px; }
+.room-reac-btn small { font: 700 13px var(--fc); color: var(--mute); }
+.room-reac-btn i { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--hl); transition: width .5s; }
+.room-reac-btn:hover { border-color: var(--hl); }
+/* bate-papo */
+.room-chat { display: flex; flex-direction: column; min-height: 0; }
+.room-msgs { height: min(60vh, 560px); overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; overscroll-behavior: contain; }
+.room-older { align-self: center; padding: 6px 12px; border: 1px solid var(--rule2); border-radius: 999px; background: var(--pan2); color: var(--ink2); font-size: 12.5px; cursor: pointer; }
+.room-msg { display: grid; grid-template-columns: 32px minmax(0, 1fr) 24px; gap: 8px; align-items: start; }
+.room-msg.mine { grid-template-columns: 24px minmax(0, 1fr) 32px; }
+.room-msg.mine .room-av { grid-column: 3; grid-row: 1; }
+.room-msg.mine .room-bubble { grid-column: 2; grid-row: 1; justify-self: end; background: color-mix(in srgb, var(--hl) 18%, var(--pan2)); }
+.room-msg.mine .room-act { grid-column: 1; grid-row: 1; }
+.room-av { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; display: grid; place-items: center; background: var(--pan3); font: 800 12px var(--fc); color: var(--ink2); }
+.room-bubble { max-width: 100%; padding: 7px 11px; border-radius: 12px; background: var(--pan2); }
+.room-bubble small { display: block; font-size: 11.5px; color: var(--mute); margin-bottom: 2px; }
+.room-bubble small b { color: var(--ink2); }
+.room-bubble p { margin: 0; font-size: 14.5px; line-height: 1.35; overflow-wrap: anywhere; }
+.room-act { opacity: 0; width: 24px; height: 24px; border: 0; border-radius: 50%; background: none; color: var(--mute); cursor: pointer; font-size: 13px; transition: opacity .15s; }
+.room-msg:hover .room-act, .room-act:focus { opacity: 1; }
+@media (hover: none) { .room-act { opacity: .6; } }
+.room-form { display: flex; gap: 8px; align-items: center; padding: 10px 12px; border-top: 1px solid var(--rule); }
+.room-form input { flex: 1; min-width: 0; height: 42px; padding: 0 14px; border: 1px solid var(--rule2); border-radius: 999px; background: var(--pan2); color: var(--ink); font-size: 15px; outline: none; }
+.room-form input:focus { border-color: var(--hl); }
+.room-count { font-size: 11px; color: var(--mute); min-width: 24px; text-align: right; }
+.room-form .btn { height: 42px; border-radius: 999px; cursor: pointer; }
+.room-form .btn:disabled { opacity: .5; cursor: default; }
+.room-login { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--rule); color: var(--ink2); font-size: 14px; }
+.room-err { margin: 0; padding: 0 16px 10px; font-size: 12.5px; color: var(--loss); }
+/* enquetes */
+.room-polls { display: grid; gap: 10px; padding: 12px 14px; }
+.room-poll { display: grid; gap: 8px; padding: 12px; border-radius: 10px; background: var(--pan2); border: 1px solid var(--rule); }
+.room-poll.closed { opacity: .75; }
+.room-poll > b { font-size: 14.5px; line-height: 1.3; }
+.room-poll-opts { display: grid; gap: 6px; }
+.room-poll-opts .btn { justify-content: center; height: 36px; cursor: pointer; text-transform: none; font-family: inherit; font-weight: 600; font-size: 14px; }
+.room-poll-res { position: relative; display: flex; justify-content: space-between; align-items: center; height: 34px; padding: 0 10px; border-radius: 6px; background: var(--pan); overflow: hidden; font-size: 13.5px; }
+.room-poll-res i { position: absolute; inset: 0 auto 0 0; background: color-mix(in srgb, var(--hl) 22%, transparent); }
+.room-poll-res.mine i { background: color-mix(in srgb, var(--hl) 40%, transparent); }
+.room-poll-res span, .room-poll-res em { position: relative; font-style: normal; }
+.room-poll-res em { font: 800 15px var(--fc); }
+.room-poll-res.mine span::after { content: " ✓"; color: var(--hl); }
+/* nota da torcida */
+.room-craque { display: grid; gap: 2px; margin: 12px 16px 0; padding: 12px 16px; border-radius: 10px; background: linear-gradient(90deg, rgba(232, 185, 35, .22), var(--pan2)); }
+.room-craque small { font: 700 12px var(--fc); text-transform: uppercase; letter-spacing: .06em; color: #e8b923; }
+.room-craque b { font: 800 24px var(--fc); text-transform: uppercase; }
+.room-craque span { font-size: 13px; color: var(--ink2); }
+.room-rate-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--rule); margin-top: 12px; }
+.room-rate-grid > div { background: var(--pan); padding: 10px 14px; display: grid; gap: 6px; align-content: start; }
+.room-rate-grid h4 { display: flex; align-items: center; gap: 8px; margin: 2px 0 6px; font: 700 14px var(--fc); text-transform: uppercase; }
+.room-player { display: grid; grid-template-columns: 30px minmax(0, 1fr) 34px; grid-template-rows: auto auto; column-gap: 8px; row-gap: 4px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--rule); }
+.room-pos { font: 700 11px var(--fc); color: var(--mute); }
+.room-player b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.room-player em { font: 800 17px var(--fc); font-style: normal; text-align: right; color: var(--ink2); }
+.room-player em.hi { color: var(--win); } .room-player em.lo { color: var(--loss); }
+.room-stars { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
+.room-stars button { height: 26px; border: 1px solid var(--rule2); border-radius: 4px; background: var(--pan2); color: var(--mute); font: 700 12px var(--fc); cursor: pointer; padding: 0; }
+.room-stars button:hover { border-color: var(--tc, var(--hl)); color: var(--ink); }
+.room-stars button.below { background: color-mix(in srgb, var(--tc, var(--hl)) 25%, var(--pan2)); color: var(--ink2); }
+.room-stars button.on { background: var(--tc, var(--hl)); border-color: var(--tc, var(--hl)); color: #fff; }
+@media (min-width: 1100px) {  /* telas largas: nome, média e notas na mesma linha (metade da altura) */
+  .room-player { grid-template-columns: 26px minmax(0, 1fr) 30px 232px; grid-template-rows: auto; padding: 4px 0; }
+  .room-stars { grid-column: auto; gap: 2px; }
+  .room-stars button { height: 22px; font-size: 11px; }
+}
+/* chamada para a sala no resumo */
+.room-cta { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 10px; background: linear-gradient(100deg, color-mix(in srgb, var(--hl) 24%, var(--pan)), var(--pan) 70%); border: 1px solid color-mix(in srgb, var(--hl) 40%, transparent); }
+.room-cta span { display: grid; gap: 2px; flex: 1; } .room-cta b { font: 800 18px var(--fc); text-transform: uppercase; } .room-cta small { color: var(--ink2); font-size: 13px; }
+.room-cta .em { font-size: 26px; }
+@media (max-width: 960px) {
+  .room-grid { grid-template-columns: 1fr; }
+  .room-side { order: -1; }
+}
+@media (max-width: 640px) {
+  .room-rate-grid { grid-template-columns: 1fr; }
+  .room-reac-row { gap: 5px; }
+  .room-reac-btn { height: 40px; font-size: 17px; gap: 2px; padding: 0 2px; }
+  .room-reac-btn small { font-size: 11px; }
+  .room-msgs { height: 58vh; padding: 10px; }
+}

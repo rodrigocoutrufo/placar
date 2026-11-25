@@ -46,7 +46,7 @@ from pathlib import Path
 from . import config
 from .ai import client as ai
 from .ai import news as ai_news
-from .core import auth, bolao, identity, news_filter, prob, venues, webpush
+from .core import auth, bolao, identity, news_filter, prob, sala, venues, webpush
 from .sources import espn, footballdata, news_rss, stadium, transfermarkt
 from . import ai_routes, search, sports
 
@@ -751,6 +751,15 @@ def _bolao_match(pid: int):
 bolao.fetch_match = _bolao_match
 
 
+def _sala_match(pid: int):
+    """Partida completa (com escalações e substituições) para a Sala do jogo."""
+    st, body, _ = route(f"/partidas/{pid}")
+    return json.loads(enrich_match(body)) if st == 200 else None
+
+
+sala.fetch_match = _sala_match
+
+
 # ---------------------------------------------------------------- cópia pronta + atualização em segundo plano
 # Respostas caras de montar e iguais para todo visitante: quem chega leva a última cópia na hora (memória ou disco,
 # inclusive logo depois de reiniciar) e, se ela venceu, uma nova é montada em segundo plano.
@@ -1179,6 +1188,11 @@ class LiveHub:
             self.clients.discard(q)
 
     def publish(self, event: str, data):
+        if event in ("gol", "periodo", "lance"):  # lances viram enquetes na Sala do jogo
+            try:
+                sala.on_event(event, data)
+            except Exception as e:  # noqa: BLE001
+                sys.stderr.write(f"sala: {e!r}\n")
         if event in ("gol", "periodo", "lance", "nba", "f1"):  # também para quem está com o site fechado (Web Push)
             try:
                 webpush.dispatch(event, data)
@@ -1457,8 +1471,10 @@ STATUS_TOKEN = os.environ.get("STATUS_TOKEN", "")
 RATE = {"api": (int(os.environ.get("RATE_API_MIN", "240")), 60), "heavy": (int(os.environ.get("RATE_HEAVY_MIN", "20")), 60)}
 HEAVY = re.compile(r"^/(jogador-tm|time-tm|estadio)$")
 AUTH_PATH = re.compile(r"^/(auth|conta)(/[\w-]+){1,2}$")
-BOLAO_PATH = re.compile(r"^/bolao(/[\w-]+){1,3}$")
-PUSH_PATH = re.compile(r"^/push/(chave|inscrever|cancelar|teste)$")  # notificações com o site fechado (core/webpush.py)  # bolão com amigos (core/bolao.py), precisa de conta
+BOLAO_PATH = re.compile(r"^/bolao(/[\w-]+){1,3}$")  # bolão com amigos (core/bolao.py), precisa de conta
+PUSH_PATH = re.compile(r"^/push/(chave|inscrever|cancelar|teste)$")  # notificações com o site fechado (core/webpush.py)
+SALA_PATH = re.compile(r"^/sala/\d+(/(mensagens|reagir|votar|nota|denunciar|apagar))?$")  # Sala do jogo (core/sala.py)
+SALA_STREAM = re.compile(r"^/sala/(\d+)/eventos$")  # tempo real de uma sala
 AI_POST = {"/ia/perguntar"}
 _frames = []  # iframes de fora liberados um a um
 if auth.TURNSTILE_SITE and auth.TURNSTILE_SECRET:  # captcha da Cloudflare: libera só o domínio dela
@@ -1612,7 +1628,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             parsed = urllib.parse.urlsplit(self.path)
             path = parsed.path[4:].rstrip("/") if parsed.path.startswith("/api/") else ""
-            if not AUTH_PATH.match(path) and not BOLAO_PATH.match(path) and not PUSH_PATH.match(path) and path not in AI_POST:
+            if not AUTH_PATH.match(path) and not BOLAO_PATH.match(path) and not PUSH_PATH.match(path) and not SALA_PATH.match(path) and path not in AI_POST:
                 return self._json(405, b'{"message":"M\\u00e9todo n\\u00e3o permitido"}', "server")
             return self._auth("POST", path, parsed)
         except (BrokenPipeError, ConnectionResetError):
@@ -1655,12 +1671,15 @@ class Handler(BaseHTTPRequestHandler):
         ctx = {"ip": self._ip(), "cookies": self._cookies(), "host": self.headers.get("Host", ""),
                "proto": "https" if fwd_proto == "https" else "http", "origin": self.headers.get("Origin"),
                "xrw": self.headers.get("X-Requested-With"), "ua": self.headers.get("User-Agent", "")}
-        if path in AI_POST or ((BOLAO_PATH.match(path) or PUSH_PATH.match(path)) and method == "POST"):  # mesma proteção CSRF das contas
+        if path in AI_POST or ((BOLAO_PATH.match(path) or PUSH_PATH.match(path) or SALA_PATH.match(path)) and method == "POST"):  # mesma proteção CSRF das contas
             origin = ctx["origin"] or ""
             if ctx["xrw"] != "placar" or (origin and urllib.parse.urlsplit(origin).netloc != ctx["host"]):
                 return self._json(403, b'{"message":"Requisi\\u00e7\\u00e3o bloqueada por seguran\\u00e7a."}', "server")
         if path in AI_POST:  # assistente
             st, obj = ai_routes.handle_post(path, body, ctx)
+            headers = []
+        elif SALA_PATH.match(path):  # Sala do jogo: bate-papo, reações, enquetes e nota da torcida
+            st, obj = sala.handle(method, path, dict(urllib.parse.parse_qsl(parsed.query)), body, ctx)
             headers = []
         elif PUSH_PATH.match(path):  # inscrição para avisos com o site fechado
             if not _allow(ctx["ip"], "api"):
@@ -1723,7 +1742,10 @@ class Handler(BaseHTTPRequestHandler):
             if st != 200:
                 return self._json(st, b'{"message":"Imagem indispon\\u00edvel"}', "server")
             return self._send(200, body, ctype, "public, max-age=604800")
-        if AUTH_PATH.match(path) or BOLAO_PATH.match(path) or PUSH_PATH.match(path):
+        m_sala = SALA_STREAM.match(path)
+        if m_sala:  # tempo real da sala: só os eventos desta partida
+            return self._room_stream(int(m_sala.group(1)))
+        if AUTH_PATH.match(path) or BOLAO_PATH.match(path) or PUSH_PATH.match(path) or SALA_PATH.match(path):
             return self._auth("GET", path, parsed)
         if path.startswith("/ia/"):  # camada de IA (ai_routes.py)
             if not _allow(ip, "api"):
@@ -1754,6 +1776,36 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:  # noqa: BLE001 — uma fonte com problema não derruba o servidor
             sys.stderr.write(f"erro na API {path}: {e!r}\n")
             return self._json(502, json.dumps({"message": "Fonte de dados indisponível no momento."}).encode(), "error")
+
+    def _room_stream(self, pid: int):
+        """Sala do jogo em tempo real: mensagens, reações, enquetes, votos, notas e quantas pessoas estão na sala."""
+        if not _allow(self._ip(), "api"):
+            return self._json(429, b'{"message":"Muitas requisi\\u00e7\\u00f5es."}', "server")
+        q = sala.HUB.subscribe(pid)
+        if q is None:
+            return self._json(503, b'{"message":"Sala cheia agora"}', "server")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache, no-transform")
+        self.send_header("X-Accel-Buffering", "no")
+        self._common_headers()
+        self.end_headers()
+        self._status = 200
+        self.close_connection = True
+        try:
+            self.wfile.write(b"retry: 4000\n")
+            self.wfile.write(f"event: online\ndata: {json.dumps({'online': sala.HUB.online(pid)})}\n\n".encode())
+            self.wfile.flush()
+            while True:
+                try:
+                    self.wfile.write(q.get(timeout=20))
+                except queue.Empty:
+                    self.wfile.write(b": ping\n\n")
+                self.wfile.flush()
+        except OSError:
+            pass
+        finally:
+            sala.HUB.unsubscribe(pid, q)
 
     def _stream(self):
         """Tempo real: Server-Sent Events. O navegador recebe a lista ao vivo e cada gol na hora."""

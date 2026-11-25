@@ -3,7 +3,7 @@
  * - /api: rede primeiro; sem conexão, devolve o último dado salvo.
  * Imagens de outros domínios (escudos, fotos) ficam com o cache normal do navegador: a política de
  * segurança (CSP connect-src 'self') não deixa o service worker buscá-las. */
-const VERSION = 'placar-v34'; // prefixo antigo mantido: só o número sobe
+const VERSION = 'placar-v35'; // prefixo antigo mantido: só o número sobe
 const APP = `${VERSION}-app`;
 const DATA = `${VERSION}-data`;
 const MAX_DATA = 150;
@@ -70,7 +70,7 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   if (url.origin === location.origin) {
     if (['/api/_status', '/api/stream', '/healthz'].includes(url.pathname)) return; // tempo real e status: sempre direto
-    if (/^\/api\/(auth|conta|ia|bolao|push)\//.test(url.pathname)) return; // conta, IA, bolão e push (pessoal): nunca ficam em cache
+    if (/^\/api\/(auth|conta|ia|bolao|push|sala)\//.test(url.pathname)) return; // conta, IA, bolão, push e sala (pessoal e em tempo real): nunca ficam em cache
     if (url.pathname.startsWith('/api/')) { e.respondWith(networkFirst(req, DATA, MAX_DATA)); return; }
     e.respondWith(networkFirst(req, APP));
   }
