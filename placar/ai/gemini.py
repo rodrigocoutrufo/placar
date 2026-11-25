@@ -69,12 +69,12 @@ def _text(d: dict) -> str:
     return "".join(parts).strip()
 
 
-def ask_json(system: str, user: str, schema: dict, stats: dict) -> dict:
+def ask_json(system: str, user: str, schema: dict, stats: dict, thinking: str = "low") -> dict:
     """Tenta o modelo principal (com uma nova tentativa após uma pausa curta) e, se ele estiver sobrecarregado,
     os modelos reserva do plano grátis, em ordem."""
     base = {"system_instruction": system, "input": user, "store": False,
             "response_format": {"type": "text", "mime_type": "application/json", "schema": schema},
-            "generation_config": {"thinking_level": "low", "max_output_tokens": 4096}}
+            "generation_config": {"thinking_level": thinking, "max_output_tokens": 8192}}
     busy, last = None, None
     attempts = [(MODEL, 0), (MODEL, 1.5)] + [(m, 0) for m in FALLBACKS if m != MODEL]
     for model, pause in attempts:

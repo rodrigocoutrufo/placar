@@ -180,7 +180,7 @@ def ask_json(system: str, user: str, schema: dict, *, effort: str = "low", ttl: 
             return hit
     if provider() in ("ollama", "gemini"):
         data = _local(lambda: ollama.ask_json(system, user, schema, stats)) if provider() == "ollama" \
-            else _gemini(lambda: gemini.ask_json(system, user, schema, stats))
+            else _gemini(lambda: gemini.ask_json(system, user, schema, stats, thinking={"high": "high", "medium": "medium"}.get(effort, "low")))
         if cache:
             cache_put(key, data, ttl)
         return data

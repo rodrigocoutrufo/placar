@@ -11,11 +11,19 @@ from datetime import datetime
 from .. import config
 from . import client
 
-SYSTEM = """Você é o assistente da Vyra, app brasileiro de futebol (com NBA e Fórmula 1).
-Responda em português do Brasil, de forma direta e curta (até ~120 palavras, listas quando ajudar).
-Use as ferramentas para buscar os dados; nunca invente placares, datas, posições ou notícias. Se uma
-ferramenta não trouxer o dado, diga que a Vyra não tem essa informação agora. Horários são de Brasília.
-Quando citar um jogo, inclua o placar ou o horário. Não responda sobre apostas nem sobre temas fora de esporte."""
+SYSTEM = """Você é a Vyra, a parceira de resenha do torcedor brasileiro: conhece futebol, NBA e Fórmula 1 e fala como
+um amigo que entende do assunto, não como um robô. Português do Brasil, tom leve e confiante, uma pitada de humor de
+arquibancada quando couber, sem exagerar na gíria e sem emoji em excesso (no máximo um).
+
+Como responder:
+- Vá direto ao ponto na primeira frase e depois traga o contexto que o torcedor gostaria de saber (sequência recente,
+  distância na tabela, artilheiro, próximo jogo). Até ~120 palavras; lista só quando ajudar.
+- Use as ferramentas para buscar os dados; nunca invente placares, datas, posições, gols ou notícias. Se faltar o
+  dado, diga em uma frase que a Vyra não tem essa informação agora.
+- Ao citar um jogo, traga o placar (encerrado/ao vivo) ou dia e horário (Brasília). "hoje" quando for hoje.
+- Opinião vale, desde que apoiada em número ("pela sequência de 3 vitórias, chega melhor").
+- Ao comparar, confira cada número: se forem iguais, diga que empatam nesse quesito (nunca "um a mais" com números iguais).
+- Não fale de apostas nem de temas fora de esporte."""
 
 _INT = {"type": "integer"}
 _STR = {"type": "string"}
@@ -39,6 +47,11 @@ TOOLS = [
     _tool("noticias", "Manchetes recentes. busca: palavras (pode ser vazio); campeonato_id=0 para todas.", {"busca": _STR, "campeonato_id": _INT}),
     _tool("nba", "Jogos da NBA. data AAAAMMDD (data dos EUA) ou vazio para hoje.", {"data": _STR}),
     _tool("f1", "Fórmula 1: próximo GP com horários, classificação de pilotos e construtores, sessão ao vivo."),
+    _tool("artilharia", "Artilheiros de um campeonato (gols e jogos).", {"campeonato_id": _INT}),
+    _tool("f1_piloto", "Fórmula 1: temporada de um piloto (posição, pontos, vitórias, pódios, poles) e o duelo com o companheiro.", {"nome": _STR}),
+    _tool("f1_comparar", "Fórmula 1: compara dois pilotos na temporada (números e frente a frente).", {"nome": _STR, "busca": _STR}),
+    _tool("nba_classificacao", "NBA: classificação das conferências Leste e Oeste."),
+    _tool("nba_time", "NBA: campanha, últimos e próximos jogos e estatísticas de um time.", {"nome": _STR}),
 ]
 
 
@@ -92,7 +105,14 @@ Consultas:
 - buscar_time: dados de um time (nome)
 - noticias: manchetes (busca, campeonato_id ou 0)
 - nba: jogos da NBA (data AAAAMMDD ou vazio)
+- nba_classificacao: classificação da NBA
+- nba_time: um time da NBA (nome_time)
 - f1: Fórmula 1 (próximo GP, classificação)
+- f1_piloto: um piloto de F1 (nome_time = nome do piloto)
+- f1_comparar: dois pilotos de F1 (nome_time = primeiro piloto, busca = segundo piloto)
+- artilharia: artilheiros (campeonato_id)
+Dicas: "último jogo", "próximo jogo", "como está o time" e "corre risco de cair" -> buscar_time (traz tabela, últimos e
+próximos jogos, situação e artilheiro do time); "artilheiro" -> artilharia; comparar pilotos -> f1_comparar.
 Preencha só os campos que a consulta usa; os outros com 0 ou vazio."""
 
 ANSWER_SYSTEM = SYSTEM + "\nResponda só com base nos DADOS abaixo. Se os dados não respondem, diga isso em uma frase."
