@@ -92,5 +92,27 @@ class Fatos(unittest.TestCase):
         self.assertIn("O QUE MUDA", insights.MOMENT["finalizado"])
 
 
+
+
+class IAOcupada(unittest.TestCase):
+    def test_mostra_a_ultima_analise(self):
+        from placar.ai import client as ai
+        ctx = {"status": "finalizado", "mandante": {"nome": "Alfa"}, "visitante": {"nome": "Beta"}}
+        boa = {"titulo": "Alfa vence", "resumo": "x", "pontos": [], "palpite": {}, "fique_de_olho": "y"}
+        with mock.patch.object(ai, "available", lambda: True), mock.patch.object(r, "match_context", lambda pid: ctx), \
+                mock.patch.object(r.auth.LIMIT, "allow", lambda *a: True):
+            with mock.patch.object(insights, "match_insight", lambda c: boa):
+                st, d = r.handle_get("/ia/partida/123", {}, "1.2.3.4")
+            self.assertEqual((st, d["analise"]["titulo"], d.get("anterior")), (200, "Alfa vence", None))
+
+            def ocupada(c):
+                raise ai.AIError("Muita gente usando a IA agora.")
+            with mock.patch.object(insights, "match_insight", ocupada):
+                st, d = r.handle_get("/ia/partida/123", {}, "1.2.3.4")  # IA ocupada: a última análise, marcada
+                self.assertEqual((st, d["analise"]["titulo"], d.get("anterior")), (200, "Alfa vence", True))
+                st, d = r.handle_get("/ia/partida/999", {}, "1.2.3.4")  # sem análise anterior: o erro de sempre
+                self.assertEqual(st, 503)
+
+
 if __name__ == "__main__":
     unittest.main()

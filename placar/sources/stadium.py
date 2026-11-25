@@ -36,23 +36,31 @@ _last = [0.0]
 _locks: dict[str, threading.Lock] = {}
 
 
+class Busy(Exception):
+    """A Wikimedia pediu para esperar (429): a busca fica para depois, sem gravar "não achei"."""
+
+
+_pause = [0.0]
+
+
 def _get(url, **q):
     q["format"] = "json"
     full = url + "?" + urllib.parse.urlencode(q)
+    if time.time() < _pause[0]:
+        raise Busy("Wikimedia pediu uma pausa")
     with _throttle:
-        for attempt in range(2):
-            wait = 1.5 - (time.time() - _last[0])
-            if wait > 0:
-                time.sleep(wait)
-            _last[0] = time.time()
-            try:
-                with urllib.request.urlopen(urllib.request.Request(full, headers=UA), timeout=20) as r:
-                    return json.load(r)
-            except urllib.error.HTTPError as e:
-                if e.code != 429 or attempt:
-                    raise
-                time.sleep(min(int(e.headers.get("Retry-After") or 10), 20))  # pediu para esperar: espera e tenta 1 vez
-    return {}
+        wait = 1.5 - (time.time() - _last[0])
+        if wait > 0:
+            time.sleep(wait)
+        _last[0] = time.time()
+        try:
+            with urllib.request.urlopen(urllib.request.Request(full, headers=UA), timeout=20) as r:
+                return json.load(r)
+        except urllib.error.HTTPError as e:
+            if e.code == 429:  # antes o visitante esperava até 20 s pelo Retry-After; agora a busca pausa e responde na hora
+                _pause[0] = time.time() + max(120, min(int(e.headers.get("Retry-After") or 300), 1800))
+                raise Busy("Wikimedia pediu uma pausa") from e
+            raise
 
 
 def _norm(s):
@@ -132,7 +140,7 @@ def lookup(name: str | None, club: str | None = None) -> dict | None:
             item = _find(name, club)
             data = _build(item) if item else None
         except Exception:
-            if f.exists():  # Wikimedia fora do ar: usa a cópia antiga
+            if f.exists():  # Wikimedia fora do ar ou pedindo pausa: usa a cópia antiga
                 return _with_streetview(json.loads(f.read_text(encoding="utf-8"))["d"])
             raise
         f.write_text(json.dumps({"t": time.time(), "d": data}, ensure_ascii=False), encoding="utf-8")

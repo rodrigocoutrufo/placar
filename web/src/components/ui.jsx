@@ -57,7 +57,16 @@ export function ErrorBox({ error, retry }) {
 export class QueryBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null }; }
   static getDerivedStateFromError(error) { return { error }; }
-  componentDidCatch(error) { console.error(error); }
+  componentDidCatch(error) {
+    console.error(error);
+    // saiu uma versão nova do site e esta aba pediu um pedaço que não existe mais: recarrega sozinha (uma vez a cada 30 s)
+    if (/dynamically imported module|Importing a module script failed|error loading dynamically/i.test(String(error && error.message))) {
+      try {
+        const last = +sessionStorage.getItem('vyra.reload') || 0;
+        if (Date.now() - last > 30_000) { sessionStorage.setItem('vyra.reload', String(Date.now())); window.location.reload(); }
+      } catch { /* sem armazenamento: fica a tela com "Tentar de novo" */ }
+    }
+  }
   retry = () => { if (this.props.onReset) this.props.onReset(); this.setState({ error: null }); };
   render() {
     if (!this.state.error) return this.props.children;

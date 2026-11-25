@@ -194,6 +194,19 @@ def _get(url: str, ttl: float):
     return data
 
 
+def _summary(url: str):
+    """Resumo de uma partida: 15 s enquanto o jogo pode mudar; encerrado, não muda mais (6 h).
+    Antes eram sempre 15 s, e cada visita a um jogo já terminado buscava tudo de novo (1-2 s)."""
+    s = _get(url, 15)
+    state = ((((s.get("header") or {}).get("competitions") or [{}])[0].get("status") or {}).get("type") or {}).get("state")
+    if state == "post":
+        with _lock:
+            hit = _cache.get(url)
+            if hit and hit[0] < time.time() + 6 * 3600:
+                _cache[url] = (time.time() + 6 * 3600, hit[1])
+    return s
+
+
 # ---------------------------------------------------------------- helpers
 def _slug(s: str) -> str:
     s = unicodedata.normalize("NFD", s or "").encode("ascii", "ignore").decode().lower()
@@ -946,7 +959,7 @@ def _stats(box_team):
 def partida(pid: int) -> dict:
     eid = pid - OFFSET
     lid = _league_for_event(eid)
-    s = _get(f"{SITE_WEB}/{LEAGUES[lid]['slug']}/summary?event={eid}", 15)
+    s = _summary(f"{SITE_WEB}/{LEAGUES[lid]['slug']}/summary?event={eid}")
     comp = s["header"]["competitions"][0]
     ev = {"id": str(eid), "date": comp.get("date"), "competitions": [comp], "status": comp.get("status"),
           "venue": (s.get("gameInfo") or {}).get("venue") or {}}
@@ -1095,7 +1108,7 @@ def bridge(m: dict, code: str, detail: bool = True, ttl: float = 20) -> dict:
                 m["lances_ao_vivo"] = live_flags(comp)
         m["espn_evento"] = str(e["id"])
         if detail:
-            s = _get(f"{SITE_WEB}/{BRIDGE[code]}/summary?event={e['id']}", 15)
+            s = _summary(f"{SITE_WEB}/{BRIDGE[code]}/summary?event={e['id']}")
             _fill_details(m, s)
             if m.get("escalacoes") or m.get("estatisticas") or any((m.get("gols") or {}).values()):
                 m["fonte"] = "football-data+espn"

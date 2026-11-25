@@ -620,6 +620,25 @@ def foryou_context(team_names: list[str], comp_ids: list[int]) -> tuple[dict, li
 
 
 # ---------------------------------------------------------------- rotas
+# última análise de cada jogo: se a IA estiver ocupada, a página mostra esta em vez de um erro
+LAST_DIR = config.DATA_DIR / "ia_ultimas"
+
+
+def _save_last(pid: int, out: dict):
+    try:
+        LAST_DIR.mkdir(parents=True, exist_ok=True)
+        (LAST_DIR / f"{int(pid)}.json").write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def _load_last(pid: int) -> dict | None:
+    try:
+        return json.loads((LAST_DIR / f"{int(pid)}.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
 def _err(e):
     return 503, {"message": str(e), "ativo": ai.available()}
 
@@ -634,13 +653,17 @@ def handle_get(path: str, query: dict, ip: str):
         return 429, {"message": "Muitas análises seguidas. Aguarde alguns minutos."}
     m = re.match(r"^/ia/partida/(\d+)$", path)
     if m:
+        pid = int(m.group(1))
         try:
-            ctx = match_context(int(m.group(1)))
-            return 200, {"analise": insights.match_insight(ctx), "status": ctx["status"], "gerado_em": datetime.now(config.BRT).isoformat(timespec="minutes")}
+            ctx = match_context(pid)
+            out = {"analise": insights.match_insight(ctx), "status": ctx["status"], "gerado_em": datetime.now(config.BRT).isoformat(timespec="minutes")}
+            _save_last(pid, out)
+            return 200, out
         except NotFound:
             return 404, {"message": "Partida não encontrada."}
         except ai.AIError as e:
-            return _err(e)
+            last = _load_last(pid)  # IA ocupada (plano grátis no limite): mostra a última análise deste jogo
+            return (200, {**last, "anterior": True}) if last else _err(e)
     if path == "/ia/para-voce":
         teams = [t.strip() for t in (query.get("times") or "").split(",") if t.strip()][:8]
         comps = [int(c) for c in (query.get("campeonatos") or "").split(",") if c.strip().isdigit()][:6]

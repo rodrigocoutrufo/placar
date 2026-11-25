@@ -767,6 +767,9 @@ def _swr_file(key: str):
 def _swr_build(key: str, ttl: float, build):
     try:
         body = build()
+        if len(_swr_mem) > 400:  # muitas combinações (notícias por time): esquece as mais antigas; o disco guarda
+            for k in sorted(_swr_mem, key=lambda k: _swr_mem[k][0])[:100]:
+                _swr_mem.pop(k, None)
         _swr_mem[key] = (time.time() + ttl, body)
         SWR_DIR.mkdir(parents=True, exist_ok=True)
         _swr_file(key).write_bytes(body)
@@ -879,7 +882,15 @@ def _route(path: str, query: dict | None = None) -> tuple[int, bytes, str]:
         return 200, json.dumps(live, ensure_ascii=False).encode(), "live" if ids else "espn"
 
     if path == "/noticias":
-        return news({k: v for k, v in query.items() if k in NEWS_PARAMS}, ids)
+        q = {k: v for k, v in query.items() if k in NEWS_PARAMS}
+
+        def build():  # montar as notícias junta ESPN, portais e a classificação de cada manchete (0,3 a 5 s)
+            st, body, _ = news(q, ids)
+            if st != 200:
+                raise RuntimeError(f"noticias: {st}")
+            return body
+        # cópia pronta por combinação de filtros: o visitante não espera; a nova é montada em segundo plano a cada 2 min
+        return 200, swr("noticias?" + urllib.parse.urlencode(sorted(q.items())), 120, build, max_age=3 * 3600), "cache"
 
     if path == "/jogador-tm":
         nome = (query.get("nome") or "").strip()
@@ -901,11 +912,14 @@ def _route(path: str, query: dict | None = None) -> tuple[int, bytes, str]:
         if not nome and not clube:
             return 400, b'{"message":"Informe o nome do est\\u00e1dio"}', "wikimedia"
         e = None
-        for n in venues.names(nome) or [nome]:  # nome atual primeiro; a Wikipédia às vezes ainda usa o antigo
-            e = stadium.lookup(n, clube or None)
-            if e:
-                e = {**e, "nome": venues.canonical(nome) or e.get("nome")}
-                break
+        try:
+            for n in venues.names(nome) or [nome]:  # nome atual primeiro; a Wikipédia às vezes ainda usa o antigo
+                e = stadium.lookup(n, clube or None)
+                if e:
+                    e = {**e, "nome": venues.canonical(nome) or e.get("nome")}
+                    break
+        except stadium.Busy:  # Wikimedia pediu pausa: responde na hora (antes o visitante esperava até 20 s)
+            return 503, json.dumps({"message": "Est\u00e1dio indispon\u00edvel agora. Tente em alguns minutos."}).encode(), "wikimedia"
         return (200, json.dumps(e, ensure_ascii=False).encode(), "wikimedia") if e else (404, b'{"message":"Est\\u00e1dio n\\u00e3o encontrado"}', "wikimedia")
 
     m = re.match(r"^/campeonatos/(\d+)/chances$", path)
@@ -1730,6 +1744,8 @@ class Handler(BaseHTTPRequestHandler):
         if not _allow(ip, "api") or (HEAVY.match(path) and not _allow(ip, "heavy")):
             return self._send(429, b'{"message":"Muitas requisi\\u00e7\\u00f5es. Aguarde um instante."}', "application/json; charset=utf-8",
                               "no-store", {"Retry-After": "30"})
+        if path == "/ao-vivo" and HUB.ready:  # a lista que o ciclo do ao vivo já montou (no máximo 5 s com jogo rolando)
+            return self._json(200, json.dumps(HUB.live, ensure_ascii=False).encode(), "ao-vivo")
         try:
             st, body, src = route(path, query)
             if st == 200 and re.match(r"^/partidas/\d+$", path):
