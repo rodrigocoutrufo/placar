@@ -135,6 +135,11 @@ function Panel({ onClose }) {
             <Switch on={n.tipos.inicio} onChange={(v) => tipo('inicio', v)}>Começar o jogo</Switch>
             <Switch on={n.tipos.intervalo} onChange={(v) => tipo('intervalo', v)}>Intervalo</Switch>
             <Switch on={n.tipos.fim} onChange={(v) => tipo('fim', v)} hint="Com o placar final">Fim de jogo</Switch>
+            <Switch on={n.tipos.vermelho} onChange={(v) => tipo('vermelho', v)} hint="Com quem foi expulso e o minuto">Cartão vermelho</Switch>
+            <Switch on={n.tipos.penalti} onChange={(v) => tipo('penalti', v)} hint="Perdido ou defendido (o gol de pênalti já vem como gol)">Pênalti perdido</Switch>
+            <Switch on={n.tipos.anulado} onChange={(v) => tipo('anulado', v)} hint="Quando o placar volta (VAR)">Gol anulado</Switch>
+            <Switch on={n.tipos.em_breve} onChange={(v) => tipo('em_breve', v)} hint="Para lembrar de ligar a TV">Começa em 15 min</Switch>
+            <Switch on={n.tipos.escalacao} onChange={(v) => tipo('escalacao', v)} hint="Cerca de 1 h antes do jogo">Escalação confirmada</Switch>
           </section>
           <section>
             <h3>Campeonatos</h3>

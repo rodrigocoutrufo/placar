@@ -291,6 +291,26 @@ def _camp_ref(lid: int) -> dict:
     return {"campeonato_id": lid, "nome": L["nome"], "slug": _slug(L["nome"]), "nome_popular": L["popular"]}
 
 
+def live_flags(comp: dict) -> list:
+    """Lances que viram aviso durante o jogo (cartão vermelho, pênalti perdido ou defendido), do placar da ESPN.
+    Cada um tem uma chave estável: o ao vivo avisa só os que aparecem de novo."""
+    home_id = next((str(c["team"]["id"]) for c in comp.get("competitors") or [] if c.get("homeAway") == "home"), None)
+    out = []
+    for x in comp.get("details") or []:
+        text = ((x.get("type") or {}).get("text") or "").lower()
+        if x.get("redCard"):
+            tipo, det = "vermelho", ("Segundo amarelo" if "yellow" in text else None)
+        elif "penalty - missed" in text or "penalty - saved" in text:
+            tipo, det = "penalti", ("Defendido" if "saved" in text else "Perdido")
+        else:
+            continue
+        a = (x.get("athletesInvolved") or [{}])[0]
+        minuto = (x.get("clock") or {}).get("displayValue")
+        out.append({"k": f"{tipo}-{minuto}-{a.get('id')}", "tipo": tipo, "detalhe": det, "minuto": minuto, "nome": a.get("displayName"),
+                    "lado": "mandante" if str((x.get("team") or {}).get("id")) == home_id else "visitante"})
+    return out
+
+
 def match(ev: dict, lid: int, rounds: dict | None = None) -> dict:
     comp = ev["competitions"][0]
     home = next(c for c in comp["competitors"] if c.get("homeAway") == "home")
@@ -328,6 +348,7 @@ def match(ev: dict, lid: int, rounds: dict | None = None) -> dict:
         disp = st.get("displayClock", "")
         out["cronometro"] = _int(re.match(r"\d+", disp).group()) if re.match(r"\d+", disp) else None
         out["cronometro_label"] = _clock_label(disp)
+        out["lances_ao_vivo"] = live_flags(comp)
     if rounds and eid in rounds:
         out["rodada_numero"] = rounds[eid]  # rodada reconstruída (a ESPN não informa)
     return out
@@ -1071,6 +1092,7 @@ def bridge(m: dict, code: str, detail: bool = True, ttl: float = 20) -> dict:
                 mm = re.match(r"\d+", disp or "")
                 m["cronometro"] = int(mm.group()) if mm else None
                 m["cronometro_label"] = "Intervalo" if periodo == "intervalo" else (_clock_label(disp) or "Ao vivo")
+                m["lances_ao_vivo"] = live_flags(comp)
         m["espn_evento"] = str(e["id"])
         if detail:
             s = _get(f"{SITE_WEB}/{BRIDGE[code]}/summary?event={e['id']}", 15)

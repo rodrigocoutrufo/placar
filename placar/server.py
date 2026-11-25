@@ -1165,7 +1165,7 @@ class LiveHub:
             self.clients.discard(q)
 
     def publish(self, event: str, data):
-        if event in ("gol", "periodo", "nba", "f1"):  # também para quem está com o site fechado (Web Push)
+        if event in ("gol", "periodo", "lance", "nba", "f1"):  # também para quem está com o site fechado (Web Push)
             try:
                 webpush.dispatch(event, data)
             except Exception as e:  # noqa: BLE001 — o aviso por push nunca derruba o ao vivo
@@ -1180,7 +1180,8 @@ class LiveHub:
 
     @staticmethod
     def _sig(m):
-        return (m.get("placar_mandante"), m.get("placar_visitante"), m.get("status"), m.get("periodo"), m.get("cronometro_label") or m.get("cronometro"))
+        return (m.get("placar_mandante"), m.get("placar_visitante"), m.get("status"), m.get("periodo"), m.get("cronometro_label") or m.get("cronometro"),
+                len(m.get("lances_ao_vivo") or []))
 
     def _scorer(self, m, side):
         """Autor do último gol (quando a fonte informa)."""
@@ -1245,6 +1246,15 @@ class LiveHub:
                     if (m.get(key) or 0) > (old.get(key) or 0):
                         team = m["time_mandante" if side == "mandante" else "time_visitante"]
                         self.publish("gol", {"partida": m, "lado": side, "time": team, "autor": self._scorer(m, side)})
+                    elif (m.get(key) or 0) < (old.get(key) or 0):  # o placar voltou: gol anulado (VAR ou correção)
+                        team = m["time_mandante" if side == "mandante" else "time_visitante"]
+                        self.publish("lance", {"partida": m, "tipo": "anulado", "lado": side, "time": team})
+                seen = {x.get("k") for x in old.get("lances_ao_vivo") or []}
+                for x in m.get("lances_ao_vivo") or []:  # cartão vermelho, pênalti perdido/defendido
+                    if x.get("k") not in seen:
+                        team = m["time_mandante" if x.get("lado") == "mandante" else "time_visitante"]
+                        self.publish("lance", {"partida": m, "tipo": x["tipo"], "lado": x.get("lado"), "time": team,
+                                               "autor": {"nome": x.get("nome"), "minuto": x.get("minuto")}, "detalhe": x.get("detalhe")})
                 if old.get("periodo") != m.get("periodo") and m.get("periodo") == "intervalo":
                     self.publish("periodo", {"partida": m, "texto": "Intervalo"})
             elif old is None and self.ready:
@@ -1281,6 +1291,61 @@ class LiveHub:
 
 
 HUB = LiveHub()
+
+# ---------------------------------------------------------------- antes do jogo: "começa em 15 min" e escalação
+# Uma vez por jogo (guardado em memória). Logo depois de reiniciar, o que já passou do ponto só é marcado, sem avisar
+# de novo: escalação que já tinha saído e jogo que começa em menos de 9 min.
+_pre_sent = {"em_breve": set(), "escalacao": set()}
+_lineup_check: dict[int, float] = {}
+_pre_first = [True]
+
+
+def _has_lineup(m: dict) -> bool:
+    """Escalação dos dois times já publicada (ESPN; ligas europeias pela ponte da ESPN, sem gastar a football-data)."""
+    pid = m["partida_id"]
+    if pid >= espn.OFFSET:
+        d = espn.partida(pid)
+    elif pid >= footballdata.OFFSET:
+        code = footballdata.LEAGUES.get(int((m.get("campeonato") or {}).get("campeonato_id") or 0), {}).get("code")
+        if not code:
+            return False
+        d = espn.bridge(dict(m), code, detail=True)
+    else:
+        return False
+    esc = d.get("escalacoes") or {}
+    return all((esc.get(s) or {}).get("titulares") for s in ("mandante", "visitante"))
+
+
+def pre_match():
+    if not HUB.ready:
+        return
+    first, _pre_first[0] = _pre_first[0], False
+    try:
+        games = json.loads(agenda())
+    except ValueError:
+        return
+    now = datetime.now(BRT)
+    for m in games:
+        if m.get("status") != "agendado" or not m.get("data_realizacao_iso"):
+            continue
+        try:
+            mins = (datetime.strptime(m["data_realizacao_iso"], "%Y-%m-%dT%H:%M:%S%z") - now).total_seconds() / 60
+        except ValueError:
+            continue
+        pid = m["partida_id"]
+        if 0 < mins <= 15 and pid not in _pre_sent["em_breve"]:
+            _pre_sent["em_breve"].add(pid)
+            if mins > 9:
+                HUB.publish("lance", {"partida": m, "tipo": "em_breve", "minutos": round(mins)})
+        if 0 < mins <= 75 and pid not in _pre_sent["escalacao"] and time.time() - _lineup_check.get(pid, 0) > 170:
+            _lineup_check[pid] = time.time()  # cada jogo é conferido no máximo a cada ~3 min
+            try:
+                if _has_lineup(m):
+                    _pre_sent["escalacao"].add(pid)
+                    if not first:
+                        HUB.publish("lance", {"partida": m, "tipo": "escalacao"})
+            except Exception:  # noqa: BLE001 — fonte fora: confere de novo daqui a pouco
+                pass
 
 
 def status_payload() -> bytes:
@@ -1352,6 +1417,7 @@ def scheduler():
         every("noticias", 600, lambda: route("/noticias", {"por_pagina": "20"}))
         every("craques", 1800, craques_pool)  # minijogo Craque do dia pronto antes do primeiro jogador
         every("forcas", 1500, rating_index)  # probabilidades das partidas prontas antes do visitante pedir
+        every("pre-jogo", 60, pre_match)  # "começa em 15 min" e escalação confirmada
         every("bolao", 300, bolao.refresh_results)  # placar dos jogos com palpite do bolão (para os pontos)
         every("limpeza", 3600, auth.cleanup)  # sessões, códigos e desafios vencidos
         every("f1-analise", 3 * 3600, f1_warm)  # análise da última corrida (OpenF1) pronta antes do visitante pedir

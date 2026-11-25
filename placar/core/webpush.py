@@ -355,6 +355,10 @@ def _norm(s) -> str:
     return " ".join(unicodedata.normalize("NFD", str(s or "")).encode("ascii", "ignore").decode().lower().split())
 
 
+# tipos de aviso de futebol (os mesmos interruptores do painel de notificações)
+TIPOS = ("gol", "inicio", "intervalo", "fim", "vermelho", "penalti", "anulado", "em_breve", "escalacao")
+
+
 def clean_prefs(p: dict) -> dict:
     """Só o que decide quem recebe cada aviso (o navegador manda; nada mais é guardado)."""
     p = p if isinstance(p, dict) else {}
@@ -362,7 +366,7 @@ def clean_prefs(p: dict) -> dict:
     strs = lambda v: [str(x)[:60] for x in (v or [])[:100]]  # noqa: E731
     tipos = p.get("tipos") or {}
     return {"comps": ints(p.get("comps")), "times": ints(p.get("times")), "nomes": [_norm(x) for x in strs(p.get("nomes"))],
-            "tipos": {k: bool(tipos.get(k)) for k in ("gol", "inicio", "intervalo", "fim")},
+            "tipos": {k: bool(tipos.get(k)) for k in TIPOS},
             "nbaTodos": bool(p.get("nbaTodos")), "nbaTimes": ints(p.get("nbaTimes")),
             "f1": bool(p.get("f1")), "f1Pilotos": strs(p.get("f1Pilotos")), "f1Equipes": strs(p.get("f1Equipes"))}
 
@@ -375,9 +379,10 @@ def _team_in(t, pr) -> bool:
 
 
 def wants(event: str, data: dict, pr: dict) -> bool:
-    if event in ("gol", "periodo"):
+    if event in ("gol", "periodo", "lance"):
         p = data.get("partida") or {}
-        kind = "gol" if event == "gol" else {"Começou": "inicio", "Intervalo": "intervalo", "Fim de jogo": "fim"}.get(data.get("texto"))
+        kind = "gol" if event == "gol" else data.get("tipo") if event == "lance" else \
+            {"Começou": "inicio", "Intervalo": "intervalo", "Fim de jogo": "fim"}.get(data.get("texto"))
         if not kind or not pr["tipos"].get(kind):
             return False
         cid = int(((p.get("campeonato") or {}).get("campeonato_id")) or 0)
@@ -413,6 +418,24 @@ def message(event: str, data: dict, pr: dict | None = None) -> dict | None:
         camp = (p.get("campeonato") or {}).get("nome_popular") or ""
         return {"title": f"{data['texto']} · {camp}".strip(" ·"), "body": placar, "icon": (p.get("time_mandante") or {}).get("escudo"),
                 "tag": f"jogo-{p['partida_id']}", "url": f"/#/partida/{p['partida_id']}"}
+    if event == "lance":
+        p, t = data["partida"], data.get("time") or {}
+        placar = f"{p['time_mandante']['nome_popular']} {p.get('placar_mandante') or 0} × {p.get('placar_visitante') or 0} {p['time_visitante']['nome_popular']}"
+        a = data.get("autor") or {}
+        quem = " · ".join(x for x in (a.get("minuto"), a.get("nome"), data.get("detalhe")) if x)
+        camp = (p.get("campeonato") or {}).get("nome_popular") or ""
+        jogo = f"{p['time_mandante']['nome_popular']} × {p['time_visitante']['nome_popular']}"
+        title, body = {
+            "vermelho": (f"🟥 Cartão vermelho · {t.get('nome_popular', '')}", f"{placar}\n{quem}"),
+            "penalti": (f"Pênalti {'defendido' if data.get('detalhe') == 'Defendido' else 'perdido'} · {t.get('nome_popular', '')}", f"{placar}\n{quem}"),
+            "anulado": (f"Gol anulado · {t.get('nome_popular', '')}", placar),
+            "em_breve": (f"Começa em {data.get('minutos') or 15} min", f"{jogo}\n{camp}".strip()),
+            "escalacao": ("Escalações confirmadas", f"{jogo}\n{camp}".strip()),
+        }.get(data.get("tipo"), (None, None))
+        if not title:
+            return None
+        return {"title": title.strip(" ·"), "body": body.strip(), "icon": t.get("escudo") or (p.get("time_mandante") or {}).get("escudo"),
+                "tag": f"jogo-{p['partida_id']}-{data.get('tipo')}", "url": f"/#/partida/{p['partida_id']}{'/escalacoes' if data.get('tipo') == 'escalacao' else ''}"}
     if event == "nba":
         g = data["jogo"]
         return {"title": f"NBA · {data.get('texto')}", "body": f"{g['fora'].get('curto')} {g['fora'].get('placar') or 0} × {g['casa'].get('placar') or 0} {g['casa'].get('curto')}",
@@ -471,7 +494,7 @@ def _deliver(rows, event, data):
 
 def dispatch(event: str, data: dict) -> None:
     """Chamado a cada evento ao vivo: escolhe quem segue aquilo e envia em segundo plano (não trava o ao vivo)."""
-    if event not in ("gol", "periodo", "nba", "f1"):
+    if event not in ("gol", "periodo", "lance", "nba", "f1"):
         return
     try:
         with _db_lock, _conn() as c:

@@ -181,6 +181,12 @@ export function GoalToasts() {
       return { to: `/nba/jogo/${g.id}`, img: <img className="t-logo" src={g.casa.logo} alt="" />, title: `NBA · ${a.texto}`,
         line: `${g.fora.curto} ${g.fora.placar ?? 0} × ${g.casa.placar ?? 0} ${g.casa.curto}`, small: g.periodo };
     }
+    if (a.kind === 'lance') {
+      const p = a.partida;
+      return { to: `/partida/${p.partida_id}${a.tipo === 'escalacao' ? '/escalacoes' : ''}`,
+        img: a.tipo === 'vermelho' ? <span className="t-card" aria-hidden /> : <Crest t={a.time || p.time_mandante} size={40} />,
+        title: a.title.toUpperCase(), line: a.line, small: a.small };
+    }
     if (a.kind === 'f1') {
       return { to: '/f1', img: <img className="t-logo" src={LOGO.f1} alt="" />, title: `F1 · ${a.sessao} ${a.texto === 'Começou' ? 'começou' : 'terminou'}`,
         line: (a.seguidos || []).length ? (a.seguidos || []).map((x) => `${x.pos}º ${String(x.nome).split(' ').slice(-1)[0]}`).join(' · ') : a.gp,

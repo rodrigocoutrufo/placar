@@ -14,7 +14,8 @@ const DEF = {
   nbaTodos: false, nbaTimes: [], // NBA: todos os jogos ou só os times escolhidos ([{ id, nome, logo }], ids da ESPN)
   f1: false, // começo e fim de cada sessão (treinos, classificação, corrida)
   f1Pilotos: [], f1Equipes: [], // F1 seguidos: [{ id, nome, cor, foto }] (ids da Jolpica); avisam a posição de cada um
-  tipos: { gol: true, inicio: true, intervalo: false, fim: true },
+  // tipos de aviso de futebol; os novos (cartão vermelho, pênalti, gol anulado, 15 min antes, escalação) também valem no push
+  tipos: { gol: true, inicio: true, intervalo: false, fim: true, vermelho: true, penalti: true, anulado: true, em_breve: true, escalacao: false },
   navegador: false,
 };
 export function getNotif() {

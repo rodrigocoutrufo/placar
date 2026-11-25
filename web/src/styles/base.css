@@ -436,3 +436,6 @@ img[src$="#mono"] { filter: brightness(0) invert(1); }
 .np-push { display: grid; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--rule); }
 .np-push .btn { justify-content: center; height: 38px; cursor: pointer; }
 .np-push .btn:disabled { opacity: .7; cursor: wait; }
+
+/* aviso de cartão vermelho na tela */
+.goal .t-card { width: 28px; height: 38px; margin: 1px 6px; border-radius: 4px; background: #e11d2e; box-shadow: 0 2px 8px rgba(225, 29, 46, .5); transform: rotate(-8deg); flex: none; }

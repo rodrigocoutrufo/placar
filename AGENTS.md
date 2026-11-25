@@ -25,7 +25,7 @@ europeias), NBA e Fórmula 1. Interface e textos em **português do Brasil**.
   - Compilado em `web/dist`, que o servidor Python serve em `/`.
 - `public/` — frontend antigo (vanilla JS). Não é mais exposto; o servidor só usa como reserva se `web/dist` não existir.
 - `data/transmissoes.json` — onde assistir (editável, relido quando muda).
-- `tests/` — `smoke_test.py` (sobe o servidor e confere ~55 itens), `test_ai.py` (unitários de IA) e `test_webpush.py` (criptografia do push conferida com a RFC 8291).
+- `tests/` — `smoke_test.py` (sobe o servidor e confere ~55 itens), `test_ai.py` (unitários de IA) `test_webpush.py` (criptografia do push conferida com a RFC 8291) e `test_avisos.py` (cartão vermelho, pênalti, gol anulado, 15 min antes e escalação, simulados).
 
 ## Rodar
 ```bash
@@ -38,7 +38,7 @@ cd web && npm run dev       # desenvolvimento em http://localhost:5173 (proxy /a
 ## Testes
 ```bash
 python tests/smoke_test.py
-python -m unittest tests.test_ai tests.test_webpush
+python -m unittest tests.test_ai tests.test_webpush tests.test_avisos
 ```
 Os testes de IA zeram as chaves antes de importar: **nunca** chamar IA real nos testes.
 

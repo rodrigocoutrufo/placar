@@ -50,6 +50,30 @@ function onF1(e) {
   const top = (e.top || []).map((x) => `${x.pos}º ${x.nome}`).join(' · ');
   systemNotify(`F1 · ${e.sessao} ${e.texto === 'Começou' ? 'começou' : 'terminou'}`, `${e.gp}${mine ? ` — ${mine}` : top ? ` — ${top}` : ''}`, { tag: `f1-${e.sessao}`, url: '/#/f1' });
 }
+// lances que não são gol: cartão vermelho, pênalti perdido/defendido, gol anulado, "começa em 15 min", escalação
+export function lanceText(e) {
+  const p = e.partida, t = e.time || {};
+  const jogo = `${p.time_mandante.nome_popular} × ${p.time_visitante.nome_popular}`;
+  const a = e.autor || {};
+  const quem = [a.minuto, a.nome, e.detalhe].filter(Boolean).join(' · ');
+  const camp = (p.campeonato && p.campeonato.nome_popular) || '';
+  switch (e.tipo) {
+    case 'vermelho': return { title: `Cartão vermelho · ${t.nome_popular || ''}`, line: score(p), small: quem };
+    case 'penalti': return { title: `Pênalti ${e.detalhe === 'Defendido' ? 'defendido' : 'perdido'} · ${t.nome_popular || ''}`, line: score(p), small: quem };
+    case 'anulado': return { title: `Gol anulado · ${t.nome_popular || ''}`, line: score(p), small: 'O placar voltou (VAR ou correção)' };
+    case 'em_breve': return { title: `Começa em ${e.minutos || 15} min`, line: jogo, small: camp };
+    case 'escalacao': return { title: 'Escalações confirmadas', line: jogo, small: camp };
+    default: return null;
+  }
+}
+function onLance(e) {
+  if (!e || !e.partida || !wantsMatch(e.partida, e.tipo)) return;
+  const txt = lanceText(e);
+  if (!txt) return;
+  pushAlert({ kind: 'lance', id: `${e.partida.partida_id}-${e.tipo}`, ...e, ...txt });
+  const url = `/#/partida/${e.partida.partida_id}${e.tipo === 'escalacao' ? '/escalacoes' : ''}`;
+  systemNotify(txt.title, [txt.line, txt.small].filter(Boolean).join(' · '), { icon: (e.time || e.partida.time_mandante || {}).escudo, tag: `lance-${e.partida.partida_id}-${e.tipo}`, url });
+}
 export const dismissGoal = (key) => { snapGoals = snapGoals.filter((x) => x.key !== key); emit(); };
 
 // Aviso de teste (painel de notificações): o mesmo caminho de um gol de verdade, com um jogo ao vivo se houver.
@@ -77,6 +101,7 @@ function connect() {
   es.addEventListener('periodo', (e) => onPeriod(JSON.parse(e.data)));
   es.addEventListener('nba', (e) => onNba(JSON.parse(e.data)));
   es.addEventListener('f1', (e) => onF1(JSON.parse(e.data)));
+  es.addEventListener('lance', (e) => onLance(JSON.parse(e.data)));
   es.addEventListener('outros', (e) => { snapOther = JSON.parse(e.data); emit(); });
   es.addEventListener('error', () => {
     state.on = false;
