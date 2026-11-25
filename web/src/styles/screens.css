@@ -617,25 +617,25 @@ a.fchip:hover { border-color: var(--hl); color: var(--hl); }
 .spl-bar i { display: block; height: 100%; border-radius: 1px; }
 .spl-bar i:last-child { background: var(--pan3); }
 /* simulador */
-.sim-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; }
-.sim-tbl td, .sim-tbl th { white-space: nowrap; }
-.sim-tbl th small { font-weight: 500; color: var(--mute); }
-.sim-n { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
-.sim-n .tcb { width: 4px; height: 16px; background: var(--tc); }
-.sim-sel { height: 32px; min-width: 92px; padding: 0 8px; border: 1px solid var(--rule2); border-radius: 4px; background: var(--pan2); color: var(--mute); font-weight: 600; font-size: 13px; cursor: pointer; }
-.sim-sel.on { color: var(--ink); border-color: var(--hl); background: var(--pan); }
-.sim-sel.p1 { border-color: #e8b923; }
-.sim-res { padding: 14px 16px; border-left: 1px solid var(--rule); display: grid; gap: 4px; align-content: start; }
-.sim-res h4 { margin: 0 0 6px; font: 700 14px var(--fc); text-transform: uppercase; color: var(--mute); }
-.sim-row { display: grid; grid-template-columns: 22px 6px 1fr auto auto; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 4px; background: var(--pan2); }
-.sim-row .p { font: 800 15px var(--fc); color: var(--mute); }
-.sim-row .tcb { width: 4px; height: 16px; background: var(--tc); }
-.sim-row em { font: 800 18px var(--fc); font-style: normal; }
-.sim-row em small { font-size: 12px; color: var(--win); }
-.sim-row.lead { background: linear-gradient(90deg, rgba(232, 185, 35, .22), var(--pan2)); }
-.sim-row.lead .p { color: #e8b923; }
-.sim-res > small { margin-top: 8px; font-size: 12px; }
-.sim-lock { font-family: inherit; font-weight: 500; font-size: 11px; color: var(--mute); text-transform: none; }
+.fsim-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; }
+.fsim-tbl td, .fsim-tbl th { white-space: nowrap; }
+.fsim-tbl th small { font-weight: 500; color: var(--mute); }
+.fsim-n { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
+.fsim-n .tcb { width: 4px; height: 16px; background: var(--tc); }
+.fsim-sel { height: 32px; min-width: 92px; padding: 0 8px; border: 1px solid var(--rule2); border-radius: 4px; background: var(--pan2); color: var(--mute); font-weight: 600; font-size: 13px; cursor: pointer; }
+.fsim-sel.on { color: var(--ink); border-color: var(--hl); background: var(--pan); }
+.fsim-sel.p1 { border-color: #e8b923; }
+.fsim-res { padding: 14px 16px; border-left: 1px solid var(--rule); display: grid; gap: 4px; align-content: start; }
+.fsim-res h4 { margin: 0 0 6px; font: 700 14px var(--fc); text-transform: uppercase; color: var(--mute); }
+.fsim-row { display: grid; grid-template-columns: 22px 6px 1fr auto auto; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 4px; background: var(--pan2); }
+.fsim-row .p { font: 800 15px var(--fc); color: var(--mute); }
+.fsim-row .tcb { width: 4px; height: 16px; background: var(--tc); }
+.fsim-row em { font: 800 18px var(--fc); font-style: normal; }
+.fsim-row em small { font-size: 12px; color: var(--win); }
+.fsim-row.lead { background: linear-gradient(90deg, rgba(232, 185, 35, .22), var(--pan2)); }
+.fsim-row.lead .p { color: #e8b923; }
+.fsim-res > small { margin-top: 8px; font-size: 12px; }
+.fsim-lock { font-family: inherit; font-weight: 500; font-size: 11px; color: var(--mute); text-transform: none; }
 /* comparar pilotos */
 .cmp-pick { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; margin-bottom: 18px; }
 .cmp-pick > span { font: 800 22px var(--fc); color: var(--mute); }
@@ -675,8 +675,8 @@ a.fchip:hover { border-color: var(--hl); color: var(--hl); }
 .hist-kpi b { font: 800 30px/1 var(--fc); color: var(--hl); }
 .hist-kpi span { font-size: 13px; color: var(--ink2); }
 @media (max-width: 900px) {
-  .sim-grid, .hist-grid { grid-template-columns: 1fr; }
-  .sim-res, .hist-side { border-left: 0; border-top: 1px solid var(--rule); }
+  .fsim-grid, .hist-grid { grid-template-columns: 1fr; }
+  .fsim-res, .hist-side { border-left: 0; border-top: 1px solid var(--rule); }
 }
 @media (max-width: 640px) {
   .cmp-pick { grid-template-columns: 1fr; }

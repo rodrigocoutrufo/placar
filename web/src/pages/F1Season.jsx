@@ -129,21 +129,21 @@ function Simulator({ s }) {
   }).sort((a, b) => b.final - a.final || b.vit - a.vit || a.antes - b.antes);
   const any = Object.values(picks).some((o) => Object.keys(o).length);
   return (
-    <Reveal><Panel className="sim">
+    <Reveal><Panel className="fsim">
       <Head sub={s.decidido ? 'título decidido · simule as outras posições' : 'escolha as posições das etapas que faltam'} right={any ? <button type="button" className="hd-link" onClick={() => setPicks({})}>Limpar</button> : null}>Simulador do campeonato</Head>
-      <div className="sim-grid">
-        <div className="tbl-wrap"><table className="tbl sim-tbl">
+      <div className="fsim-grid">
+        <div className="tbl-wrap"><table className="tbl fsim-tbl">
           <thead><tr><th className="l">Piloto</th><th>Pts</th>{cols.map((c) => <th key={c.k} title={c.r.gp}>{c.r.gp.replace(/^GP (do|da|de) /, '')}{c.sprint ? <small> sprint</small> : ''}</th>)}</tr></thead>
           <tbody>{s.pilotos.map((p) => (
             <tr key={p.piloto.id}>
-              <td className="l"><span className="sim-n" style={{ '--tc': cor(p.piloto) }}><i className="tcb" />{p.piloto.sobrenome}</span></td>
+              <td className="l"><span className="fsim-n" style={{ '--tc': cor(p.piloto) }}><i className="tcb" />{p.piloto.sobrenome}</span></td>
               <td><b>{p.pontos}</b></td>
               {cols.map((c) => {
                 const v = (picks[c.k] || {})[p.piloto.id] || 0;
                 const max = c.sprint ? s.pontos_sprint.length : s.pontos_corrida.length;
                 return (
                   <td key={c.k}>
-                    <select className={`sim-sel ${v ? 'on' : ''} ${v === 1 ? 'p1' : ''}`} value={v} onChange={(e) => pick(c, p.piloto.id, +e.target.value)} aria-label={`${p.piloto.sobrenome} em ${c.r.gp}${c.sprint ? ' (sprint)' : ''}`}>
+                    <select className={`fsim-sel ${v ? 'on' : ''} ${v === 1 ? 'p1' : ''}`} value={v} onChange={(e) => pick(c, p.piloto.id, +e.target.value)} aria-label={`${p.piloto.sobrenome} em ${c.r.gp}${c.sprint ? ' (sprint)' : ''}`}>
                       <option value={0}>–</option>
                       {Array.from({ length: max }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}º · {(c.sprint ? s.pontos_sprint : s.pontos_corrida)[i]} pts</option>)}
                     </select>
@@ -153,13 +153,13 @@ function Simulator({ s }) {
             </tr>
           ))}</tbody>
         </table></div>
-        <div className="sim-res">
+        <div className="fsim-res">
           <h4>Tabela final</h4>
           <Stagger>{table.map((p, i) => {
             const mv = p.antes - (i + 1);
             return (
-              <motion.div layout key={p.piloto.id} className={`sim-row ${i === 0 ? "lead" : ""}`} style={{ '--tc': cor(p.piloto) }} transition={{ type: 'spring', stiffness: 500, damping: 40 }}>
-                <span className="p">{i + 1}</span><i className="tcb" /><b>{p.piloto.sobrenome}{!p.pode_mudar && <small className="sim-lock" title="Ninguém mais alcança nem é alcançado"> garantido</small>}</b>
+              <motion.div layout key={p.piloto.id} className={`fsim-row ${i === 0 ? "lead" : ""}`} style={{ '--tc': cor(p.piloto) }} transition={{ type: 'spring', stiffness: 500, damping: 40 }}>
+                <span className="p">{i + 1}</span><i className="tcb" /><b>{p.piloto.sobrenome}{!p.pode_mudar && <small className="fsim-lock" title="Ninguém mais alcança nem é alcançado"> garantido</small>}</b>
                 {mv ? <span className={`mv ${mv > 0 ? 'up' : 'down'}`}>{mv > 0 ? '▲' : '▼'}{Math.abs(mv)}</span> : null}
                 <em>{p.final}{p.extra ? <small> +{p.extra}</small> : null}</em>
               </motion.div>
