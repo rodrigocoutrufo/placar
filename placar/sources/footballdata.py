@@ -345,8 +345,11 @@ def campeonatos():
         c = comps.get(L["code"])
         if not c:
             continue  # fora do plano da conta
-        cached = _mem.get(f"/competitions/{L['code']}/matches")
-        if cached:  # já temos a temporada em cache: devolve o detalhe completo sem custo
+        # já temos a temporada em cache (na memória ou no disco, depois de reiniciar): devolve o detalhe completo, com a
+        # fase atual. Sem olhar o disco, a Champions ficava sem fase e fora da agenda até o aquecimento chegar nela.
+        p = f"/competitions/{L['code']}/matches"
+        cached = _mem.get(p) or _cfile(p).exists()
+        if cached:
             try:
                 out.append(campeonato(lid))
                 continue

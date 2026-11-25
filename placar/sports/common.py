@@ -9,12 +9,15 @@ Rotas (via server.py, em /api/esportes/...):
   /f1/corrida/{rodada}       resultado, grid e classificação da etapa
 """
 
+import hashlib
 import json
 import threading
 import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
+
+from .. import config
 
 BRT = timezone(timedelta(hours=-3))
 NBA = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba"
@@ -31,10 +34,38 @@ class NotFound(Exception):
     pass
 
 
-def _get(url: str, ttl: float):
-    now = time.time()
+# Fontes da F1 guardadas também em disco: reiniciar o servidor não pede tudo de novo (a Jolpica limita 500 pedidos
+# por hora e cada servidor novo aquecia dezenas de telas). A NBA da ESPN não tem limite e fica só na memória.
+DISK_HOSTS = ("api.jolpi.ca", "api.openf1.org", "api.multiviewer.app", "api.open-meteo.com")
+DISK_DIR = config.DATA_DIR / "f1"
+
+
+def _dfile(url: str):
+    return DISK_DIR / (hashlib.sha1(url.encode()).hexdigest() + ".json")
+
+
+def _on_disk(url: str) -> bool:
+    return any(h in url for h in DISK_HOSTS)
+
+
+def peek(url: str):
+    """(validade, dado) da memória ou do disco, sem ir à fonte; None se não houver cópia."""
     with _lock:
         hit = _cache.get(url)
+    if not hit and _on_disk(url):
+        try:  # cópia do disco (mesmo vencida: serve se a fonte cair ou limitar)
+            d = json.loads(_dfile(url).read_text(encoding="utf-8"))
+            hit = (d["exp"], d["data"])
+            with _lock:
+                _cache[url] = hit
+        except (OSError, ValueError, KeyError):
+            hit = None
+    return hit
+
+
+def _get(url: str, ttl: float):
+    now = time.time()
+    hit = peek(url)
     if hit and hit[0] > now:
         return hit[1]
     try:
@@ -54,6 +85,12 @@ def _get(url: str, ttl: float):
         if len(_cache) > 2000:
             for k in sorted(_cache, key=lambda k: _cache[k][0])[:500]:
                 _cache.pop(k, None)
+    if _on_disk(url):
+        try:
+            DISK_DIR.mkdir(parents=True, exist_ok=True)
+            _dfile(url).write_text(json.dumps({"url": url, "exp": now + ttl, "data": data}), encoding="utf-8")
+        except OSError:
+            pass
     return data
 
 

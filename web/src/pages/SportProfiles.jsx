@@ -36,7 +36,7 @@ function ProfileHero({ color, kind, photo, logo, eyebrow, title, sub, num, kpis,
       </div>
       {kpis && (
         <Stagger className="hero-kpis">
-          {kpis.filter(Boolean).map(([v, l, s]) => <Item key={l}><b>{typeof v === 'number' ? <CountUp value={v} /> : v}</b><span>{l}</span>{s && <small>{s}</small>}</Item>)}
+          {kpis.filter(Boolean).map(([v, l, s]) => <Item key={l}><b>{typeof v === 'number' ? <CountUp value={v} /> : (v ?? '–')}</b><span>{l}</span>{s && <small>{s}</small>}</Item>)}
         </Stagger>
       )}
     </section>

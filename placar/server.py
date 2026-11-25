@@ -581,6 +581,12 @@ def craques_pool() -> list[dict]:
 # ---------------------------------------------------------------- agenda (jogos de todos os campeonatos)
 _agenda = {"exp": 0.0, "body": b""}
 _agenda_lock = threading.Lock()
+AGENDA_FILE = DATA_DIR / "agenda.json"
+try:  # última agenda montada: depois de reiniciar, a página inicial abre na hora com ela enquanto a nova é montada
+    if time.time() - AGENDA_FILE.stat().st_mtime < 6 * 3600:
+        _agenda["body"] = AGENDA_FILE.read_bytes()
+except OSError:
+    pass
 
 
 def _rounds_list(r):
@@ -613,6 +619,11 @@ def agenda() -> bytes:
     numa resposta só. Antes o navegador montava isso sozinho com ~5 chamadas por campeonato: com 40
     campeonatos passava do limite de requisições por visitante."""
     if _agenda["exp"] > time.time():
+        return _agenda["body"]
+    if _agenda["body"] and threading.current_thread().name != "agenda":
+        # vencida, mas existe: o visitante leva a cópia na hora e uma nova é montada em segundo plano
+        if not _agenda_lock.locked():
+            threading.Thread(target=agenda, name="agenda", daemon=True).start()
         return _agenda["body"]
     with _agenda_lock:  # várias visitas ao mesmo tempo montam a agenda uma vez só
         if _agenda["exp"] > time.time():
@@ -665,6 +676,10 @@ def agenda() -> bytes:
                     out.append(m)
         body = json.dumps(out, ensure_ascii=False).encode()
         _agenda.update(exp=time.time() + 60, body=body)
+        try:
+            AGENDA_FILE.write_bytes(body)
+        except OSError:
+            pass
         return body
 
 
@@ -708,7 +723,72 @@ def _bolao_match(pid: int):
 bolao.fetch_match = _bolao_match
 
 
+# ---------------------------------------------------------------- cópia pronta + atualização em segundo plano
+# Respostas caras de montar e iguais para todo visitante: quem chega leva a última cópia na hora (memória ou disco,
+# inclusive logo depois de reiniciar) e, se ela venceu, uma nova é montada em segundo plano.
+SWR_DIR = DATA_DIR / "pronto"
+_swr_mem: dict[str, tuple[float, bytes]] = {}
+_swr_busy: set[str] = set()
+_swr_lock = threading.Lock()
+
+
+def _swr_file(key: str):
+    return SWR_DIR / (hashlib.sha1(key.encode()).hexdigest() + ".json")
+
+
+def _swr_build(key: str, ttl: float, build):
+    try:
+        body = build()
+        _swr_mem[key] = (time.time() + ttl, body)
+        SWR_DIR.mkdir(parents=True, exist_ok=True)
+        _swr_file(key).write_bytes(body)
+        return body
+    finally:
+        with _swr_lock:
+            _swr_busy.discard(key)
+
+
+def swr(key: str, ttl: float, build, max_age: float = 6 * 3600) -> bytes:
+    hit = _swr_mem.get(key)
+    if not hit:
+        try:
+            f = _swr_file(key)
+            age = time.time() - f.stat().st_mtime
+            if age < max_age:
+                hit = (f.stat().st_mtime + ttl, f.read_bytes())
+                _swr_mem[key] = hit
+        except OSError:
+            hit = None
+    if hit and hit[0] > time.time():
+        return hit[1]
+    with _swr_lock:
+        running = key in _swr_busy
+        if not running:
+            _swr_busy.add(key)
+    if hit:
+        if not running:
+            threading.Thread(target=_swr_build, args=(key, ttl, build), daemon=True).start()
+        return hit[1]
+    if running:  # outro visitante já está montando e não há cópia: espera por ela
+        for _ in range(300):
+            time.sleep(0.1)
+            if key in _swr_mem:
+                return _swr_mem[key][1]
+    return _swr_build(key, ttl, build)
+
+
 def route(path: str, query: dict | None = None) -> tuple[int, bytes, str]:
+    if path == "/campeonatos" and not query:  # lista de campeonatos (4-6 s para montar a frio)
+        def build():
+            st, body, _ = _route_fixed(path, query)
+            if st != 200:
+                raise RuntimeError(f"campeonatos: {st}")
+            return body
+        return 200, swr("campeonatos", 300, build), "cache"
+    return _route_fixed(path, query)
+
+
+def _route_fixed(path: str, query: dict | None = None) -> tuple[int, bytes, str]:
     st, body, src = _route(path, query)
     if st == 200 and re.match(r"^/campeonatos(/\d+)?$", path):  # logos atuais por cima do que a fonte mandou
         try:

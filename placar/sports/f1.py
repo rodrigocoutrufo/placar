@@ -6,7 +6,7 @@ import urllib.error
 from datetime import datetime, timedelta, timezone
 
 from . import openf1
-from .common import BRT, F1_ESPN, JOLPICA, NotFound, _cache, _dt, _get, _int, _iso, _lock
+from .common import BRT, F1_ESPN, JOLPICA, NotFound, _cache, _dt, _get, _int, _iso, _lock, peek
 
 
 # ================================================================ Fórmula 1
@@ -124,6 +124,8 @@ def f1_overview() -> dict:
                           "equipe": _team(c["Constructor"])})
     except Exception:  # noqa: BLE001
         pass
+    if not drivers:  # Jolpica fora (ou no limite) e sem cópia: classificação oficial pela OpenF1
+        drivers, teams = _openf1_standings()
     _add_headshots([d["piloto"] for d in drivers], now.year)
     done = sum(1 for r in cal if r["status"] == "finalizada")
     left = len(cal) - done
@@ -162,6 +164,42 @@ def identify(order: list) -> list:
         out.append({"pos": x.get("pos"), "nome": x.get("nome"), "id": p and p["id"], "sigla": p and p["sigla"],
                     "equipe": p and (p.get("equipe") or {}).get("id")})
     return out
+
+
+# id da equipe na OpenF1 (nome) -> id da Jolpica, para os links e as cores
+OPENF1_TEAM = {"Mercedes": "mercedes", "Ferrari": "ferrari", "Red Bull Racing": "red_bull", "McLaren": "mclaren", "Aston Martin": "aston_martin",
+               "Alpine": "alpine", "Williams": "williams", "Racing Bulls": "rb", "RB": "rb", "Haas F1 Team": "haas", "Haas": "haas",
+               "Kick Sauber": "sauber", "Sauber": "sauber", "Audi": "audi", "Cadillac": "cadillac"}
+
+
+JOLPICA_ID = {"verstappen": "max_verstappen", "magnussen": "kevin_magnussen", "schumacher": "mick_schumacher"}  # ids que não são só o sobrenome
+
+
+def _openf1_standings():
+    """Classificação de pilotos e equipes pela OpenF1 (reserva da Jolpica)."""
+    try:
+        cd = openf1._q("championship_drivers?session_key=latest", 1800)
+        ct = openf1._q("championship_teams?session_key=latest", 1800)
+        info = openf1._drivers(cd[0]["session_key"]) if cd else {}
+    except Exception:  # noqa: BLE001
+        return [], []
+    drivers = []
+    for x in sorted(cd, key=lambda x: x.get("position_current") or 99):
+        d = info.get(x.get("driver_number")) or {}
+        tid = OPENF1_TEAM.get(d.get("equipe"), _fold(d.get("equipe")).replace(" ", "_") or None)
+        sobrenome = d.get("sobrenome") or str(x.get("driver_number"))
+        p = {"id": JOLPICA_ID.get(_fold(sobrenome), _fold(sobrenome).replace(" ", "_")), "nome": d.get("nome") or sobrenome, "sobrenome": sobrenome, "sigla": d.get("sigla"),
+             "numero": str(x.get("driver_number")), "bandeira": None, "pais": None, "brasileiro": False,
+             "equipe": {"id": tid, "nome": d.get("equipe"), "cor": TEAM_COLORS.get(tid, d.get("cor") or "#888888")} if d.get("equipe") else None}
+        if d.get("foto"):
+            p["foto_oficial"] = d["foto"]
+        drivers.append({"posicao": x.get("position_current"), "pontos": float(x.get("points_current") or 0), "vitorias": 0, "piloto": p})
+    teams = []
+    for x in sorted(ct, key=lambda x: x.get("position_current") or 99):
+        tid = OPENF1_TEAM.get(x.get("team_name"), _fold(x.get("team_name")).replace(" ", "_"))
+        teams.append({"posicao": x.get("position_current"), "pontos": float(x.get("points_current") or 0), "vitorias": 0,
+                      "equipe": {"id": tid, "nome": x.get("team_name"), "cor": TEAM_COLORS.get(tid, "#888888")}})
+    return drivers, teams
 
 
 def f1_live():
@@ -246,8 +284,7 @@ def _jget(path: str, ttl: float):
     """Jolpica tem limite (4/s, 500/h): espaça as chamadas que não estão em cache. Toda chamada à Jolpica passa
     por aqui (o servidor aquece várias telas da F1 ao mesmo tempo; chamadas diretas estouravam o limite por segundo)."""
     url = f"{JOLPICA}/{path}"
-    with _lock:
-        hit = _cache.get(url)
+    hit = peek(url)  # memória ou disco
     if hit and hit[0] > time.time():
         return hit[1]
     if time.time() < _jpause[0]:  # a Jolpica pediu para esperar (429): nem tenta; usa a última cópia se houver
@@ -267,11 +304,44 @@ def _jget(path: str, ttl: float):
         raise
 
 
-def _total(path: str) -> int:
+def _total(path: str) -> int | None:
+    """Contagem da carreira; None se a Jolpica não respondeu (a tela mostra "–" em vez de um 0 errado)."""
     try:
         return _int(_jget(path, 86400)["MRData"]["total"], 0)
-    except Exception:  # noqa: BLE001
+    except NotFound:
         return 0
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _soft(path: str, ttl: float, *keys, default=None):
+    """Parte opcional de uma tela: se a Jolpica falhar (fora do ar ou no limite), segue sem ela."""
+    try:
+        d = _jget(path, ttl)
+        for k in keys:
+            d = d[k]
+        return d
+    except NotFound:
+        raise
+    except Exception:  # noqa: BLE001
+        return default
+
+
+def _info_from_overview(kind: str, xid: str) -> dict | None:
+    """Ficha mínima pela classificação (que tem cópia em disco e reserva na OpenF1) quando a Jolpica não responde."""
+    try:
+        o = f1_overview()
+    except Exception:  # noqa: BLE001
+        return None
+    if kind == "piloto":
+        d = next((x["piloto"] for x in o.get("pilotos") or [] if x["piloto"]["id"] == xid), None)
+        if d:
+            given, _, family = d["nome"].rpartition(" ")
+            return {"driverId": xid, "givenName": given, "familyName": d.get("sobrenome") or family, "code": d.get("sigla"),
+                    "permanentNumber": d.get("numero"), "_equipe": d.get("equipe")}
+        return None
+    c = next((x["equipe"] for x in o.get("construtores") or [] if x["equipe"]["id"] == xid), None)
+    return {"constructorId": xid, "name": c["nome"]} if c else None
 
 
 def _wiki(url: str | None) -> dict:
@@ -323,12 +393,14 @@ def _season_champion():
 
 
 def f1_driver(did: str) -> dict:
-    info = (_jget(f"drivers/{did}.json", 7 * 86400)["MRData"]["DriverTable"]["Drivers"] or [None])[0]
+    info = (_soft(f"drivers/{did}.json", 7 * 86400, "MRData", "DriverTable", "Drivers", default=None) or [None])[0]         or _info_from_overview("piloto", did)
     if not info:
         raise NotFound("piloto")
-    races = _jget(f"current/drivers/{did}/results.json?limit=40", 1800)["MRData"]["RaceTable"]["Races"]
+    races = _soft(f"current/drivers/{did}/results.json?limit=40", 1800, "MRData", "RaceTable", "Races", default=[])
     team = races[-1]["Results"][0].get("Constructor") if races else None
     out = _driver(info, team)
+    if not out.get("equipe") and info.get("_equipe"):  # ficha mínima (Jolpica sem responder): equipe pela classificação
+        out["equipe"] = info["_equipe"]
     dob = info.get("dateOfBirth")
     if dob:
         b = datetime.fromisoformat(dob)
@@ -339,7 +411,7 @@ def f1_driver(did: str) -> dict:
     _add_headshots([out], datetime.now(timezone.utc).year)
     champ, _ = _season_champion()
     wins, p2, p3 = _total(f"drivers/{did}/results/1.json?limit=1"), _total(f"drivers/{did}/results/2.json?limit=1"), _total(f"drivers/{did}/results/3.json?limit=1")
-    out["carreira"] = {"corridas": _total(f"drivers/{did}/results.json?limit=1"), "vitorias": wins, "podios": wins + p2 + p3,
+    out["carreira"] = {"corridas": _total(f"drivers/{did}/results.json?limit=1"), "vitorias": wins, "podios": None if None in (wins, p2, p3) else wins + p2 + p3,
                        "poles": _total(f"drivers/{did}/qualifying/1.json?limit=1"), "titulos": DRIVER_TITLES.get(did, 0) + (1 if champ == did else 0)}
     # temporada: resultado de cada etapa e pontos acumulados (corrida + sprint)
     sprint = _sprint_points(f"current/drivers/{did}/sprint.json?limit=40")
@@ -369,7 +441,7 @@ def f1_driver(did: str) -> dict:
 
 
 def f1_team(cid: str) -> dict:
-    info = (_jget(f"constructors/{cid}.json", 7 * 86400)["MRData"]["ConstructorTable"]["Constructors"] or [None])[0]
+    info = (_soft(f"constructors/{cid}.json", 7 * 86400, "MRData", "ConstructorTable", "Constructors", default=None) or [None])[0]         or _info_from_overview("equipe", cid)
     if not info:
         raise NotFound("equipe")
     out = _team(info)
@@ -380,7 +452,7 @@ def f1_team(cid: str) -> dict:
     _, champ = _season_champion()
     out["carreira"] = {"corridas": 0, "vitorias": _total(f"constructors/{cid}/results/1.json?limit=1"),
                        "poles": _total(f"constructors/{cid}/qualifying/1.json?limit=1"), "titulos": TEAM_TITLES.get(cid, 0) + (1 if champ == cid else 0)}
-    races = _jget(f"current/constructors/{cid}/results.json?limit=100", 1800)["MRData"]["RaceTable"]["Races"]
+    races = _soft(f"current/constructors/{cid}/results.json?limit=100", 1800, "MRData", "RaceTable", "Races", default=[])
     sprint = _sprint_points(f"current/constructors/{cid}/sprint.json?limit=100", per_driver=True)
     drivers, acc, rows = {}, 0.0, []
     for r in races:
